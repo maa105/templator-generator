@@ -1,0 +1,19 @@
+{
+  "name": "empty-templator-generator-template-generator",
+  "version": "1.0.0",
+  "description": "Project to generate empty-templator-generator-template project",
+  "main": "generator.js",
+  "scripts": {
+    "generate": "node ./.bin/generate.js"
+  },
+  "author": "maa105",
+  "license": "MIT",
+  "dependencies": {
+    "fs-extra": "^9.0.1",
+    "lodash": "^4.17.20",
+    "minimist": "^1.2.5"
+  },
+  "bin": {
+    "generate-empty-templator-generator-template": "./.bin/generate.js"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "name": "base-generator-generator",
+  "version": "1.0.0",
+  "description": "Project to generate generator code to be used in templateProject command to generate the generate code that will call all the generator files that were created by the templateProject command.",
+  "main": "generator.js",
+  "scripts": {
+    "generate": "node ./.bin/generate.js"
+  },
+  "author": "maa105",
+  "license": "MIT",
+  "dependencies": {
+    "fs-extra": "^9.0.1",
+    "lodash": "^4.17.20",
+    "minimist": "^1.2.5"
+  },
+  "bin": {
+    "generate-base-generator": "./.bin/generate.js"
+  }
+}
