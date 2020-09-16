@@ -120,8 +120,11 @@ const generateProjectFromCommandLineArguments = async () => {
 };
 
 exports.generateProject = (options) => {
+  console.log(options);
   if(options) {
+    console.log('using raw generateProject');
     return generateProject(options);
   }
+  console.log('using generateProjectFromCommandLineArguments');
   return generateProjectFromCommandLineArguments();
 };

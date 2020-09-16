@@ -3,8 +3,12 @@
 const { cmdOptions, getAndRemoveOption } = require('../utils');
 const { generateProject } = require('../tasks-files');
 const path = require('path');
+const fs = require( 'fs-extra' );
+const path = require( 'path' );
 
 const outputPath = cmdOptions._[0] || getAndRemoveOption(cmdOptions, 'name', 'folder', 'directory', 'path') || '.';
+
+console.log('generateProject', generateProject);
 
 generateProject({ ...cmdOptions, generatorPath: path.join(__dirname, '../projects/template-generators/empty-templator-generator-template'), outputPath })
 .then(() => {
@@ -19,4 +23,9 @@ generateProject({ ...cmdOptions, generatorPath: path.join(__dirname, '../project
   console.log(`  - or \`generate-project --g <gen_name> --optionsFile ./generate-options.json\``)
   console.log(`  - the generated project will be put by default in ./projects/generated-templates/<proj_name>`)
   console.log(`  - to customise output location use --o option as \`generate-project --g <gen_name> --o <output_folder_path> --<option> <option_value>\``)
+})
+.finally(() => {
+  const package = fs.readJSONSync(path.join(__dirname, '..', 'package.json'));
+  console.log(package);
+  console.log(package.version);
 });
