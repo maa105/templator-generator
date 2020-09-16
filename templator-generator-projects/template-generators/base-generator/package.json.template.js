@@ -1,4 +1,4 @@
-const filePath = 'package.json';
+const filePath = './package.json';
 const generatePackage_json = ({ projectName = 'project1', author = 'maa105' }) => {
   const codeLines = [
     `{`,

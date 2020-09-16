@@ -1,4 +1,4 @@
-const filePath = '.bin\\generate.js';
+const filePath = './.bin/generate.js';
 const generateGenerate_js = (/*{ options to customise code generation }*/) => {
   const codeLines = [
     `#!/usr/bin/env node`,

@@ -21,9 +21,9 @@ const codifyFile = ({
       fs.ensureDirSync(binaryFilesAbsolutePath);
       fs.copyFileSync(inputFilePath, path.join(binaryFilesAbsolutePath, fileIndex.toString()));
       fs.writeFileSync(outputFilePath, [
-        `const filePath = ${singleQuoteStringify(path.join(relativePath, path.basename(inputFilePath)))};`,
+        `const filePath = './${singleQuoteStringify(path.join(relativePath, path.basename(inputFilePath)).replace(/\\/gmi, '/'), false)}';`,
         `const ${functionName} = (/*{ options to customise code generation }*/) => {`,
-        `  const srcBinaryPath = './${path.join(binaryFilesRelativePath, fileIndex.toString())}';`,
+        `  const srcBinaryPath = './${singleQuoteStringify(path.join(binaryFilesRelativePath, fileIndex.toString()).replace(/\\/gmi, '/'), false)}';`,
         `  return {`,
         `    [filePath]: srcBinaryPath`,
         `  };`,
@@ -44,7 +44,7 @@ const codifyFile = ({
   const lines = fileContent.split('\r\n');
 
   fs.writeFileSync(outputFilePath, [
-    `const filePath = ${singleQuoteStringify(path.join(relativePath, path.basename(inputFilePath)))};`,
+    `const filePath = './${singleQuoteStringify(path.join(relativePath, path.basename(inputFilePath)).replace(/\\/gmi, '/'), false)}';`,
     `const ${functionName} = (/*{ options to customise code generation }*/) => {`,
     `  const codeLines = [`,
     ...map(lines, (line, i, arr) => (

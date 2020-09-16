@@ -1,4 +1,4 @@
-const filePath = 'utils.js';
+const filePath = './utils.js';
 const generateUtils_js = (/*{ options to customise code generation }*/) => {
   const codeLines = [
     `const { camelCase } = require( 'lodash' );`,

@@ -1,7 +1,7 @@
 const { map } = require( 'lodash' );
 const { singleQuoteStringify } = require( './utils' );
 
-const filePath = 'generator.js';
+const filePath = './generator.js';
 
 const generateGenerator_js = ({ generatorsPaths }) => {
   const codeLines = [
