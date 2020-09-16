@@ -35,12 +35,12 @@ const generateProjectFromCommandLineArguments = async () => {
     console.log(`This command generates a project with from a given project generator. What it does is just call the generate command for that project generator. It is useful cause if you have multiple project template generators, this command is like a central command to generate any of then instead of going to each one individually and running its generate command.`);
     console.log(`This command takes the following arguments:`);
     console.log(` --g <project_generator>. Where <project_generator> is the absolute or relative path to the project generator you want to run (1). Aliases(2): --gen --genPath --generator --generatorPath --p --proj --project --projPath --projectPath`);
-    console.log(` [--o <output_path>]. Where <output_path> is the path you want to put the generated project in. Default "./projects/generated-templates/<name_of_generator_folder>. Aliases(2): --out --output --outputPath --outputDirPath --outputDir`);
+    console.log(` [--o <output_path>]. Where <output_path> is the path you want to put the generated project in. Default "./templator-generator-projects/generated-templates/<name_of_generator_folder>. Aliases(2): --out --output --outputPath --outputDirPath --outputDir`);
     console.log(` [--optionsFile <json_generator_options_file_path>]. Where <json_generator_options_file_path> is the path you want to send to the project generator to configure the generation process. Aliases(2): --jsonFile --optionsJsonFile --optionsJSONFile --generateOptionsFile --generateOptionsJsonFile' --generateOptionsJSONFile"`);
     console.log(` [--<option_key_to_send_to_generator> <option_value_to_send_to_generator>]. These have higher priority from those in the json file. e.g. --dontWriteEmptyFiles (Alias(2): --noEmptyFiles), lineSeperator`);
     console.log(` This command also accepts piped input as json strings for options that will be sent to the generator. The piped json options have less priority that the options json file.`);
     console.log(``);
-    console.log(`(1) if path is relative it will try to match relative to project running the command or folder this command is executed from. It will also try ./projects/template-generators relative to project running the command or folder this command is executed from`);
+    console.log(`(1) if path is relative it will try to match relative to project running the command or folder this command is executed from. It will also try ./templator-generator-projects/template-generators relative to project running the command or folder this command is executed from`);
     console.log(`(2) Aliases also work if you use them in kebab-case instead of camelCase.`);
     return;
   }
@@ -58,11 +58,11 @@ const generateProjectFromCommandLineArguments = async () => {
   else {
     const possiblePaths = [
       path.resolve(generator),
-      path.resolve(path.join('./projects/template-generators', generator)),
+      path.resolve(path.join('./templator-generator-projects/template-generators', generator)),
       path.resolve(path.join('./template-generators', generator)),
-      path.resolve(path.join('./projects/generators', generator)),
+      path.resolve(path.join('./templator-generator-projects/generators', generator)),
       path.resolve(path.join('./generators', generator)),
-      path.resolve(path.join(__dirname, '../projects/template-generators', generator)),
+      path.resolve(path.join(__dirname, '../templator-generator-projects/template-generators', generator)),
       path.resolve(path.join(__dirname, '..', generator))
     ];
     for(let i = 0; i < possiblePaths.length; i++) {
@@ -77,7 +77,7 @@ const generateProjectFromCommandLineArguments = async () => {
     console.log(`Using generator at "${generatorPath}".`)
   }
 
-  const outputPath = path.resolve(getAndRemoveOption(cmdOptions, 'o', 'out', 'output', 'outputPath', 'outFolderPath', 'outputFolderPath', 'outDirectoryPath', 'outputDirectoryPath', 'outputDir', 'outDirPath', 'outputDirPath') || path.join('./projects/generated-templates', path.basename(generator)));
+  const outputPath = path.resolve(getAndRemoveOption(cmdOptions, 'o', 'out', 'output', 'outputPath', 'outFolderPath', 'outputFolderPath', 'outDirectoryPath', 'outputDirectoryPath', 'outputDir', 'outDirPath', 'outputDirPath') || path.join('./templator-generator-projects/generated-templates', path.basename(generator)));
 
   let generateOptionsFromStdin;
   if(process.stdin && !process.stdin.readableEnded && !process.stdin.isTTY) {

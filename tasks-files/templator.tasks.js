@@ -153,7 +153,7 @@ exports.templateProject = async () => {
     console.log(`P.S. templateProject stands for generate a project generator from project XYZ. So like make project XYZ a template. Thats the best name I could come up with as generateGenerator sound aweful :|`);
     console.log(`This command takes the following arguments:`);
     console.log(` --i <path_to_project_to_template>. Where <path_to_project_to_template> is the absolute or relative path to the project you want to generate a generator for. Aliases(1): --in --input --folder --dir --directory --inFolderPath --inputFolderPath --folderPath --inDirectoryPath --inputDirectoryPath --directoryPath --inDirPath --inputDirPath --dirPath --p --proj --project --projPath --projectPath`);
-    console.log(` [--o <output_path>]. Where <output_path> is the path you want to put the generated project generator in. Default "./projects/template-generators/<name_of_input_folder>. Aliases(1): --out --output --outFolderPath --outputFolderPath --outDirectoryPath --outputDirectoryPath --outDirPath --outputDirPath`);
+    console.log(` [--o <output_path>]. Where <output_path> is the path you want to put the generated project generator in. Default "./templator-generator-projects/template-generators/<name_of_input_folder>. Aliases(1): --out --output --outFolderPath --outputFolderPath --outDirectoryPath --outputDirectoryPath --outDirPath --outputDirPath`);
     console.log(``);
     console.log(`(1) Aliases also work if you use them in kebab-case instead of camelCase.`);
     return;
@@ -174,9 +174,9 @@ exports.templateProject = async () => {
   else {
     const possiblePaths = [
       path.resolve(input),
-      path.resolve(path.join('./projects/base-templates', input)),
+      path.resolve(path.join('./templator-generator-projects/base-templates', input)),
       path.resolve(path.join('./base-templates', input)),
-      path.resolve(path.join(__dirname, '../projects/base-templates', input)),
+      path.resolve(path.join(__dirname, '../templator-generator-projects/base-templates', input)),
       path.resolve(path.join(__dirname, '..', input))
     ];
     for(let i = 0; i < possiblePaths.length; i++) {
@@ -191,14 +191,14 @@ exports.templateProject = async () => {
     console.log(`Using input project "${inputPath}"`);
   }
 
-  const outputPath = path.resolve(getAndRemoveOption(cmdOptions, 'o', 'out', 'output', 'outputPath', 'outFolderPath', 'outputFolderPath', 'outDirectoryPath', 'outputDirectoryPath', 'outputDir', 'outDirPath', 'outputDirPath') || path.join('./projects/template-generators', path.basename(inputPath)));
+  const outputPath = path.resolve(getAndRemoveOption(cmdOptions, 'o', 'out', 'output', 'outputPath', 'outFolderPath', 'outputFolderPath', 'outDirectoryPath', 'outputDirectoryPath', 'outputDir', 'outDirPath', 'outputDirPath') || path.join('./templator-generator-projects/template-generators', path.basename(inputPath)));
 
   const { generatorsPaths } = templateProject({
     inputPath,
     outputPath
   });
 
-  await generateProject({ projectName: path.basename(inputPath), ...cmdOptions, generatorPath: path.join(__dirname, '../projects/template-generators/base-generator'), outputPath, generatorsPaths });
+  await generateProject({ projectName: path.basename(inputPath), ...cmdOptions, generatorPath: path.join(__dirname, '../templator-generator-projects/template-generators/base-generator'), outputPath, generatorsPaths });
 
   console.log(`Generator for "${inputPath}" successfully written to "${outputPath}."`);
   console.log(`Note this is just a dummy generator. The idea is you go to ${outputPath} and customise/parametrise your generator so it becomes dynamic/generic/configurable or smart like you!"`);
