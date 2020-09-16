@@ -126,7 +126,7 @@ const templateProject = ({
   }
 
   for(let i = 0; i < dirs.length; i++) {
-    templateProject({
+    fileIndex = templateProject({
       inputPath: dirs[i],
       outputPath: convertInToOut(dirs[i]),
       level: level + 1,
@@ -145,6 +145,7 @@ const templateProject = ({
       generatorsPaths: outGeneratorsPaths
     };
   }
+  return fileIndex;
 };
 exports.templateProject = async () => {
   const help = getAndRemoveOption(cmdOptions, 'h', 'help');

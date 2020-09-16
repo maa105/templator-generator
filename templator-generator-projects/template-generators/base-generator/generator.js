@@ -80,11 +80,11 @@ const getGeneratorFilesEntries = async ({
 }) => {
   if(!fs.existsSync(path.join(__dirname, generatorPath))) {
     console.warn(`WARN: Could not find generator file "${generatorPath}". Skipping it. This means the file(s) it generates will not be in the output.`);
-    return 0;
+    return null;
   }
   const filesEntries = await require('./' + generatorPath).generate(generateOptions);
   if(filesEntries == null) {
-    return 0;
+    return null;
   }
 
   if(isPlainObject(filesEntries)) {
@@ -111,13 +111,15 @@ const generateFilesEntries = async (generateOptions) => {
       generatorPath,
       generateOptions
     });
-    const currentFlattenedFilesEntries = flattenFilesEntries({ filesEntries: currentFilesEntries, generatorPath });
-    forEach(currentFlattenedFilesEntries, (v, filePath) => {
-      if(filesEntries[filePath]) {
-        console.warn(`WARN: file multiple generators are writing to the following file ${filePath}.`);
-      }
-    });
-    assign(filesEntries, currentFlattenedFilesEntries);
+    if(currentFilesEntries) {
+      const currentFlattenedFilesEntries = flattenFilesEntries({ filesEntries: currentFilesEntries, generatorPath });
+      forEach(currentFlattenedFilesEntries, (v, filePath) => {
+        if(filesEntries[filePath]) {
+          console.warn(`WARN: file multiple generators are writing to the following file ${filePath}.`);
+        }
+      });
+      assign(filesEntries, currentFlattenedFilesEntries);
+    }
   }
 
   return filesEntries;
