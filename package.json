@@ -1,6 +1,6 @@
 {
   "name": "templator-generator",
-  "version": "0.0.12",
+  "version": "0.0.15",
   "description": "This is a project that templates projects (creates generator for them), and generates projects from the generated template generators. It aids and facilitates the creation of dynamic/configurable/smart code templates",
   "main": "./.bin/templator-generator.js",
   "scripts": {
@@ -12,7 +12,9 @@
     "generateProject": "node ./.bin/generate-project.js",
     "template": "node ./.bin/template-project.js",
     "template-project": "node ./.bin/template-project.js",
-    "templateProject": "node ./.bin/template-project.js"
+    "templateProject": "node ./.bin/template-project.js",
+    "link": "npm link templator-generator",
+    "unlink": "npm unlink templator-generator"
   },
   "author": "maa105",
   "license": "MIT",
