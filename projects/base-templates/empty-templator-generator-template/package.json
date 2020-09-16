@@ -16,6 +16,6 @@
   "author": "${author}",
   "license": "MIT",
   "dependencies": {
-    "templator-generator": "${version}"
+    "templator-generator": "^${version}"
   }
 }

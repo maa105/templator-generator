@@ -3,7 +3,7 @@ const generatePackage_json = ({ version = '0.0.1', author = 'maa105' }) => {
   const codeLines = [
     `{`,
     `  "name": "templator-generator-empty-project",`,
-    `  "version": "1.0.0",`,
+    `  "version": "${version}",`,
     `  "description": "Project used to generate template generator, hopefully parametrising/smartifying them, and generating dynamic projects from those parametrised template generators",`,
     `  "main": "index.js",`,
     `  "scripts": {`,
@@ -19,7 +19,7 @@ const generatePackage_json = ({ version = '0.0.1', author = 'maa105' }) => {
     `  "author": "${author}",`,
     `  "license": "MIT",`,
     `  "dependencies": {`,
-    `    "templator-generator": "${version}"`,
+    `    "templator-generator": "^${version}"`,
     `  }`,
     `}`,
     ``

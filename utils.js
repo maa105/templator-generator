@@ -71,7 +71,7 @@ exports.wait = (duration, data) => new Promise((resolve) => setTimeout(resolve.b
  * @returns {Promise<any> & {childProcess:import('child_process').ChildProcess}}
  */
 const execCmd = (cmd, cmdArgs = [], options = {}) => {
-  const errorMessage = options.errorMessage || ('Error executing ' + cmd + (cmdArgs ? ('' + cmdArgs.join(' ')) : ''));
+  const errorMessage = options.errorMessage || ('Error executing ' + cmd + ' ' + (cmdArgs ? ('' + cmdArgs.join(' ')) : ''));
   options = assign({ detached: false, shell: true, stdio: 'inherit' }, omit(options, 'errorMessage'));
   if(options.env === true) {
     options.env = Object.assign({}, process.env);

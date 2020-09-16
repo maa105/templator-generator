@@ -1,17 +1,18 @@
 {
   "name": "templator-generator",
-  "version": "0.0.3",
+  "version": "0.0.12",
   "description": "This is a project that templates projects (creates generator for them), and generates projects from the generated template generators. It aids and facilitates the creation of dynamic/configurable/smart code templates",
   "main": "./.bin/templator-generator.js",
   "scripts": {
+    "create-templator-generator-base-project": "node ./.bin/templator-generator.js",
+    "templator-generator": "node ./.bin/templator-generator.js",
+    "templatorGenerator": "node ./.bin/templator-generator.js",
     "generate": "node ./.bin/generate-project.js",
     "generate-project": "node ./.bin/generate-project.js",
     "generateProject": "node ./.bin/generate-project.js",
     "template": "node ./.bin/template-project.js",
     "template-project": "node ./.bin/template-project.js",
-    "templateProject": "node ./.bin/template-project.js",
-    "templator-generator": "node ./.bin/templator-generator.js",
-    "templatorGenerator": "node ./.bin/templator-generator.js"
+    "templateProject": "node ./.bin/template-project.js"
   },
   "author": "maa105",
   "license": "MIT",
@@ -22,8 +23,9 @@
     "minimist": "^1.2.5"
   },
   "bin": {
+    "create-templator-generator-base-project": "./.bin/templator-generator.js",
+    "templator-generator": "./.bin/templator-generator.js",
     "template-project": "./.bin/template-project.js",
-    "generate-project": "./.bin/generate-project.js",
-    "templator-generator": "./.bin/templator-generator.js"
+    "generate-project": "./.bin/generate-project.js"
   }
 }
