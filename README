@@ -1,8 +1,9 @@
-Dont use it until version 1.0.0
-
 Documentation comming soon
 
-for the time being run
-  `npx templator-generator folder_name`
+For the time being run:
+
+```js
+  npx templator-generator folder_name
+```
+
 And the cli will give you guidance
- 
