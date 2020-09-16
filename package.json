@@ -1,8 +1,11 @@
 {
   "name": "templator-generator",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "This is a project that templates projects (creates generator for them), and generates projects from the generated template generators. It aids and facilitates the creation of dynamic/configurable/smart code templates",
   "main": "./.bin/templator-generator.js",
+  "keywords": ["template", "templator", "generate", "generator", "code generator", "project templator", "project templater", "template generator", "generator generator", "generate template", "generate generator"],
+  "repository": "https://github.com/maa105/templator-generator",
+  "homepage": "https://github.com/maa105/templator-generator",
   "scripts": {
     "create-templator-generator-base-project": "node ./.bin/templator-generator.js",
     "templator-generator": "node ./.bin/templator-generator.js",
