@@ -12,9 +12,7 @@
     "generateProject": "node ./.bin/generate-project.js",
     "template": "node ./.bin/template-project.js",
     "template-project": "node ./.bin/template-project.js",
-    "templateProject": "node ./.bin/template-project.js",
-    "link": "npm link templator-generator",
-    "unlink": "npm unlink templator-generator"
+    "templateProject": "node ./.bin/template-project.js"
   },
   "author": "maa105",
   "license": "MIT",

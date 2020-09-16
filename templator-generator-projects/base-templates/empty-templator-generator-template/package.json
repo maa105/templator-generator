@@ -11,7 +11,9 @@
     "template-project": "template-project",
     "templateProject": "template-project",
     "templator-generator": "templator-generator",
-    "templatorGenerator": "templator-generator"
+    "templatorGenerator": "templator-generator",
+    "link": "npm link templator-generator",
+    "unlink": "npm unlink templator-generator"
   },
   "author": "${author}",
   "license": "MIT",
