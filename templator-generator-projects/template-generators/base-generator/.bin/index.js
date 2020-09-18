@@ -16,12 +16,11 @@ const generateFilesEntries = async (generateOptions, generatorOptions = generato
     generatorOptions.generateRootFiles ? (
       generatorOptions.generateSubDirectories ?
         generators
-      : generators.slice(0, 1)
-    )
-    : (
+        : generators.slice(0, 1)
+    ) : (
       generatorOptions.generateSubDirectories ?
         generators.slice(1)
-      : null
+        : null
     )
   );
   if(gens == null) {
@@ -39,6 +38,6 @@ exports.generateFilesEntries = generateFilesEntries;
  */
 const generate = async (outputPath, generateOptions, generatorOptions) => {
   const filesEntries = await generateFilesEntries(generateOptions, generatorOptions);
-  return generator.writeFilesEntries(outputPath, filesEntries, generatorPath);
+  return generator.writeFilesEntries(outputPath, filesEntries, generatorOptions, generatorPath);
 };
 exports.generate = generate;

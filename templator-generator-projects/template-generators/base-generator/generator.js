@@ -247,7 +247,7 @@ const defaultGeneratorOptions = {
   writeEmptyFiles: true
 };
 
-exports.writeFilesEntries = (outputPath, filesEntries, generatorPath = '[UnNamed]') => {
+exports.writeFilesEntries = (outputPath, filesEntries, generatorOptions, generatorPath = '[UnNamed]') => {
   const flattenedFilesEntries = flattenFilesEntries({ filesEntries, generatorPath });
   return writeFlattenedFilesEntries({
     outputPath,
@@ -263,7 +263,7 @@ exports.writeFilesEntries = (outputPath, filesEntries, generatorPath = '[UnNamed
  */
 exports.generateFilesEntries = async (generatorsPaths, generateOptions, generatorOptions = {}) => {
   if(!generatorsPaths) {
-    generatorsPaths = require('./index').getGenerators()
+    generatorsPaths = require('./index').getGenerators();
   }
 
   if(!generateOptions) {
