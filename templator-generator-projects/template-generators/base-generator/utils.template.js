@@ -1,7 +1,14 @@
+const fileName = 'utils.js';
 const filePath = './utils.js';
-const generateUtils_js = (/*{ options to customise code generation }*/) => {
+const generatorPath = './utils.template.js';
+const generator = require('./generator');
+/**
+ * @param {Object} generateOptions object sent to all generators to configure the generation process (your job is to add props to it to configure the generator)
+ * @param {import('./generator.js').FileGeneratorOptions} generatorOptions
+ */
+const generateFilesEntries = (generateOptions, generatorOptions = {}) => {
   const codeLines = [
-    `const { camelCase } = require( 'lodash' );`,
+    `const { camelCase, kebabCase, trim, map, flattenDeep, filter, trimEnd } = require( 'lodash' );`,
     ``,
     `const cmdOptions = require('minimist')(((args) => {`,
     `  return args.slice(2);`,
@@ -26,25 +33,52 @@ const generateUtils_js = (/*{ options to customise code generation }*/) => {
     `const lowerFirstLetter = (str) => ((str.substr(0, 1).toLowerCase()) + str.substr(1));`,
     `exports.lowerFirstLetter = lowerFirstLetter;`,
     ``,
+    `/**`,
+    ` * if last key is boolean it is interpreted as a flag to whether also to check kebab&camel case of the keys`,
+    ` */`,
     `const getAndRemoveOption = (options, ...keys) => {`,
+    `  let checkOtherCase = true;`,
+    `  if(typeof(keys[keys.length - 1]) === 'boolean') {`,
+    `    checkOtherCase = keys.pop();`,
+    `  }`,
     `  for(let i = 0; i < keys.length; i++) {`,
     `    if(options[keys[i]]) {`,
     `      const opt = options[keys[i]];`,
     `      delete options[keys[i]];`,
     `      return opt;`,
     `    }`,
-    `    if(options[camelCase(keys[i])]) {`,
+    `    if(checkOtherCase && options[camelCase(keys[i])]) {`,
     `      const opt = options[camelCase(keys[i])];`,
     `      delete options[camelCase(keys[i])];`,
     `      return opt;`,
     `    }`,
+    `    if(checkOtherCase && options[kebabCase(keys[i])]) {`,
+    `      const opt = options[kebabCase(keys[i])];`,
+    `      delete options[kebabCase(keys[i])];`,
+    `      return opt;`,
+    `    }`,
     `  }`,
     `};`,
-    `exports.getAndRemoveOption = getAndRemoveOption;`
+    `exports.getAndRemoveOption = getAndRemoveOption;`,
+    ``,
+    `const getCodeFromLines = (codeLines, lineSeperator = '\\r\\n') => trim(map(flattenDeep(filter(codeLines, (line) => line != null)), trimEnd).join(lineSeperator));`,
+    `exports.getCodeFromLines = getCodeFromLines;`,
+    ``,
+    `const isNull = (varToCheck, defaultIfToCheckNullish) => varToCheck == null ? defaultIfToCheckNullish : varToCheck;`,
+    `exports.isNull = isNull;`,
+    ``
   ];
-  return {
-    [filePath]: codeLines
-  };
+  return generatorOptions.addFilePath ? { [fileName]: codeLines } : codeLines;
 };
-exports.generateUtils_js = generateUtils_js;
-exports.generate = generateUtils_js;
+exports.generateFilesEntries = generateFilesEntries;
+
+/**
+ * @param {string} outputPath path to put the generated output in
+ * @param {Object} generateOptions user parameters/options for the generation process. It is an object sent to all generators to configure the generation process (your job is to add props to it to configure the generator)
+ * @param {import('./generator.js').FileGeneratorOptions} generatorOptions generator options
+ */
+const generate = async (outputPath, generateOptions, generatorOptions = {}) => {
+  const filesEntries = await generateFilesEntries(generateOptions, { ...generatorOptions, addFilePath: true });
+  return generator.writeFilesEntries(outputPath, filesEntries, generatorPath);
+};
+exports.generate = generate;

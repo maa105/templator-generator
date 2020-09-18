@@ -1,11 +1,40 @@
 const fs = require('fs-extra');
 const path = require('path');
-const { map, mapValues, mapKeys, flattenDeep, filter, trim, trimEnd, isArray, isString, isPlainObject, assign, forEach } = require('lodash');
-const { getAndRemoveOption, cmdOptions } = require( './utils' );
+const { mapValues, mapKeys, isArray, isString, isPlainObject, assign } = require('lodash');
+const { cmdOptions, getAndRemoveOption, getCodeFromLines, isNull } = require( './utils' );
 
-const writeCodeFile = ({ outputPath, fileRelativePath, codeLines, lineSeperator, dontWriteEmptyFiles }) => {
-  const code = trim(map(flattenDeep(filter(codeLines, (line) => line != null)), trimEnd).join(lineSeperator));
-  if(code !== '' || !dontWriteEmptyFiles) {
+/**
+ * Base generator options. Seperate from user parameters
+ * @typedef {Object} BaseGeneratorOptions
+ * @property {string} [lineSeperator] - The end of line sequence. Defaults to CRLF (\r\n)
+ * @property {boolean} [writeEmptyFiles] - If the file generator returned an empty string whether to write this file or not default to false i.e. will write the file
+ */
+/**
+ * @typedef {Object} DirectoryGeneratorOptionsExtention
+ * @property {boolean} [addDirectoryPath] - Whether the directory generator should add a its path pointing to its children FileEntries, or just return its children FileEntries without them being keyed by the directory path. i.e. return { '<dir_name>': <children_file_entries> } v.s. <children_file_entries>. Default: false
+ * @property {boolean} [generateSubDirectories] - Whether to generate the subdirectories of this directory. Default = true
+ * @property {boolean} [generateRootFiles] - Whether to generate the filrs at the root of this directory. Default = true
+ */
+/**
+ * @typedef {Object} FileGeneratorOptionsExtention
+ * @property {boolean} [addFilePath] - Whether the file generator should add a its path, or just return file generation result without it being keyed by the file path. i.e. return { '<file_name>': <file_value> } v.s. <file_value>. Default: false
+ */
+/**
+ * Generator options for directories. Seperate from user parameters
+ * @typedef {BaseGeneratorOptions & DirectoryGeneratorOptionsExtention} DirectoryGeneratorOptions
+ */
+/**
+ * Generator options for files. Seperate from user parameters
+ * @typedef {BaseGeneratorOptions & FileGeneratorOptionsExtention} FileGeneratorOptions
+ */
+/**
+ * Generic Generator options for directories and files. Seperate from user parameters
+ * @typedef {BaseGeneratorOptions & DirectoryGeneratorOptionsExtention & FileGeneratorOptionsExtention} GeneratorOptions
+ */
+
+const writeCodeFile = ({ outputPath, fileRelativePath, codeLines, generatorOptions }) => {
+  const code = getCodeFromLines(codeLines, generatorOptions.lineSeperator);
+  if(code !== '' || generatorOptions.writeEmptyFiles) {
     const filePath = path.join(outputPath, fileRelativePath);
     fs.ensureDirSync(path.parse(filePath).dir);
     fs.writeFileSync(filePath, code, { encoding: 'utf8' });
@@ -25,7 +54,7 @@ const writeBinaryFile = ({ outputPath, fileRelativePath, srcPath }) => {
   return false;
 };
 
-const writeFilesEntries = ({ outputPath, filesEntries, lineSeperator, dontWriteEmptyFiles }) => {
+const writeFlattenedFilesEntries = ({ outputPath, filesEntries, generatorOptions }) => {
   for(let filePath in filesEntries) {
     const entryValue = filesEntries[filePath];
     if(isArray(entryValue)) {
@@ -33,8 +62,7 @@ const writeFilesEntries = ({ outputPath, filesEntries, lineSeperator, dontWriteE
         outputPath,
         fileRelativePath: filePath,
         codeLines: entryValue,
-        lineSeperator,
-        dontWriteEmptyFiles
+        generatorOptions
       });
     }
     else if(isString(entryValue)) {
@@ -50,20 +78,25 @@ const writeFilesEntries = ({ outputPath, filesEntries, lineSeperator, dontWriteE
   }
 };
 
-const flattenFilesEntries = ({ generatorPath, relativePath = './', filesEntries, cumulativeFileEntries }) => {
-  cumulativeFileEntries = cumulativeFileEntries || {};
+const flattenFilesEntries = ({
+  filesEntries,
+  generatorPath = '[UnNamed]',
+  relativePath = './',
+  cumulativeFileEntries = {}
+}) => {
   for(let entryRelativePath in filesEntries) {
     const entryValue = filesEntries[entryRelativePath];
     if(isArray(entryValue)) {
-      cumulativeFileEntries[path.join(relativePath, entryRelativePath)] = entryValue;
+      cumulativeFileEntries[path.normalize(path.join(relativePath, entryRelativePath))] = entryValue;
     }
     else if(isString(entryValue)) {
-      cumulativeFileEntries[path.join(relativePath, entryRelativePath)] = entryValue;
+      cumulativeFileEntries[path.normalize(path.join(relativePath, entryRelativePath))] = entryValue;
     }
     else if(isPlainObject(entryValue)) {
       flattenFilesEntries({
-        relativePath: path.join(relativePath, entryRelativePath),
         filesEntries: entryValue,
+        generatorPath,
+        relativePath: path.normalize(path.join(relativePath, entryRelativePath)),
         cumulativeFileEntries
       });
     }
@@ -76,13 +109,14 @@ const flattenFilesEntries = ({ generatorPath, relativePath = './', filesEntries,
 
 const getGeneratorFilesEntries = async ({
   generatorPath,
-  generateOptions
+  generateOptions,
+  generatorOptions
 }) => {
   if(!fs.existsSync(path.join(__dirname, generatorPath))) {
     console.warn(`WARN: Could not find generator file "${generatorPath}". Skipping it. This means the file(s) it generates will not be in the output.`);
     return null;
   }
-  const filesEntries = await require('./' + generatorPath).generate(generateOptions);
+  const filesEntries = await require('./' + generatorPath).generateFilesEntries(generateOptions, { ...generatorOptions, addFilePath: true, addDirectoryPath: true, generateSubDirectories: true, generateRootFiles: true });
   if(filesEntries == null) {
     return null;
   }
@@ -95,41 +129,21 @@ const getGeneratorFilesEntries = async ({
   return null;
 };
 
-const generateFilesEntries = async (generateOptions) => {
-  const generators = [
-    /**
-     * the path to the generator like below example: (P.S. for the example `generatorsPaths` should be defined in `generateOptions`)
-     *
-     * const { map } = require( 'lodash' );
-     * const { singleQuoteStringify } = require( './utils' );
-     *
-     * const generateGenerator_js = ({ generatorsPaths }) => {
-     * ...
-     * map(generatorsPaths, (generatorPath, i) => (
-     *   `    ${singleQuoteStringify(generatorPath)}${i !== generatorsPaths.length - 1 ? ',' : ''}`
-     * )),
-     * ...
-     * };
-     */
-  ];
-
+const generateFilesEntries = async ({
+  generatorsPaths,
+  generateOptions,
+  generatorOptions
+}) => {
   const filesEntries = {};
 
-  for(let i = 0; i < generators.length; i++) {
-    const generatorPath = generators[i];
+  for(let i = 0; i < generatorsPaths.length; i++) {
+    const generatorPath = generatorsPaths[i];
     const currentFilesEntries = await getGeneratorFilesEntries({
       generatorPath,
-      generateOptions
+      generateOptions,
+      generatorOptions
     });
-    if(currentFilesEntries) {
-      const currentFlattenedFilesEntries = flattenFilesEntries({ filesEntries: currentFilesEntries, generatorPath });
-      forEach(currentFlattenedFilesEntries, (v, filePath) => {
-        if(filesEntries[filePath]) {
-          console.warn(`WARN: file multiple generators are writing to the following file ${filePath}.`);
-        }
-      });
-      assign(filesEntries, currentFlattenedFilesEntries);
-    }
+    assign(filesEntries, currentFilesEntries);
   }
 
   return filesEntries;
@@ -137,13 +151,15 @@ const generateFilesEntries = async (generateOptions) => {
 
 const generate = async ({
   outputPath,
-  dontWriteEmptyFiles,
-  lineSeperator,
-  ...generateOptions
+  generatorsPaths,
+  generateOptions,
+  generatorOptions
 }) => {
-  const filesEntries = await generateFilesEntries(generateOptions);
+  const filesEntries = await generateFilesEntries({ generatorsPaths, generateOptions, generatorOptions });
 
-  writeFilesEntries({ filesEntries, outputPath, lineSeperator, dontWriteEmptyFiles });
+  const flattenedFilesEntries = flattenFilesEntries({ filesEntries });
+
+  writeFlattenedFilesEntries({ filesEntries: flattenedFilesEntries, outputPath, generatorOptions });
 };
 
 const getOutputPath = () => {
@@ -154,9 +170,9 @@ const getOutputPath = () => {
   return path.resolve(outputPath);
 };
 
-const getGenerateOptions = async () => {
+const getGenerationOptions = async () => {
 
-  let generateOptionsFromStdin;
+  let generationOptionsFromStdin;
   if(process.stdin && !process.stdin.readableEnded && !process.stdin.isTTY) {
     const jsonStr = await new Promise((resolve, reject) => {
       process.stdin.setEncoding('utf-8');
@@ -172,7 +188,7 @@ const getGenerateOptions = async () => {
       });
     });
     try {
-      generateOptionsFromStdin = JSON.parse(jsonStr);
+      generationOptionsFromStdin = JSON.parse(jsonStr);
     }
     catch(err) {
       throw new Error(`Could not parse json options from stdin pipe. It does not look that it is the correct format.`);
@@ -180,22 +196,22 @@ const getGenerateOptions = async () => {
   }
 
   const jsonFilePath = getAndRemoveOption(cmdOptions, 'jsonFile', 'optionsFile', 'optionsJsonFile', 'optionsJSONFile', 'generateOptionsFile', 'generateOptionsJsonFile', 'generateOptionsJSONFile');
-  let generateOptionsFromFile;
+  let generationOptionsFromFile;
   if(jsonFilePath) {
     if(!fs.existsSync(jsonFilePath)) {
       throw new Error(`Could not find json options file "${jsonFilePath}" which resolves to ${path.resolve(jsonFilePath)}`);
     }
     try {
-      generateOptionsFromFile = JSON.parse(fs.readFileSync(jsonFilePath, { encoding: 'utf8' }));
+      generationOptionsFromFile = JSON.parse(fs.readFileSync(jsonFilePath, { encoding: 'utf8' }));
     }
     catch(err) {
       throw new Error(`Could not parse json options file "${jsonFilePath}" which resolves to ${path.resolve(jsonFilePath)}. It does not look that it is the correct format.`);
     }
   }
 
-  return {
-    ...generateOptionsFromStdin,
-    ...generateOptionsFromFile,
+  const generationOptions = {
+    ...generationOptionsFromStdin,
+    ...generationOptionsFromFile,
     ...mapKeys(
       mapValues(cmdOptions, (value, key) => {
         if(key.indexOf('--json') === key.length - 6 || (key.indexOf('--no-json') !== key.length - 9 && (value[0] === '{' || value[0] === '[' || value[0] === '"'))) {
@@ -212,22 +228,88 @@ const getGenerateOptions = async () => {
       (v, key) => key.indexOf('--json') === key.length - 6 ? key.substr(0, key.length - 6) : (key.indexOf('--no-json') === key.length - 9 ? key.substr(0, key.length - 9) : key)
     )
   };
+
+  const lineSeperator = isNull(getAndRemoveOption(generationOptions, '_LineSeperator', '_lineSeperator', 'LineSeperator', '-line-seperator', 'lineSeperator', 'line-seperator', false), '\r\n');
+  const writeEmptyFiles = isNull(getAndRemoveOption(generationOptions, '_WriteEmptyFiles', '_writeEmptyFiles', 'WriteEmptyFiles', '-write-empty-files', 'writeEmptyFiles', 'write-empty-files', false), true);
+
+  return {
+    generateOptions: generationOptions,
+    generatorOptions: { lineSeperator, writeEmptyFiles }
+  };
 };
 
-exports.generate = async () => {
+const defaultGeneratorOptions = {
+  addDirectoryPath: false,
+  addFilePath: true,
+  generateSubDirectories: true,
+  generateRootFiles: true,
+  lineSeperator: '\r\n',
+  writeEmptyFiles: true
+};
 
-  const outputPath = getOutputPath();
-  const generateOptions = await getGenerateOptions();
-
-  return generate({
-    ...generateOptions,
+exports.writeFilesEntries = (outputPath, filesEntries, generatorPath = '[UnNamed]') => {
+  const flattenedFilesEntries = flattenFilesEntries({ filesEntries, generatorPath });
+  return writeFlattenedFilesEntries({
     outputPath,
-    dontWriteEmptyFiles: cmdOptions.dontWriteEmptyFiles || cmdOptions.noEmptyFiles,
-    lineSeperator: cmdOptions.lineSeperator || '\r\n',
+    filesEntries: flattenedFilesEntries,
+    generatorOptions
   });
 };
 
-exports.generateFilesEntries = async () => {
-  const generateOptions = await getGenerateOptions();
-  return generateFilesEntries(generateOptions);
+/**
+ * @param {Array<string>} generatorsPaths array of paths to generator files
+ * @param {Object} generateOptions user parameters/options for the generation process
+ * @param {BaseGeneratorOptions} generatorOptions generator options
+ */
+exports.generateFilesEntries = async (generatorsPaths, generateOptions, generatorOptions = {}) => {
+  if(!generatorsPaths) {
+    generatorsPaths = require('./index').getGenerators()
+  }
+
+  if(!generateOptions) {
+    const generationOptions = await getGenerationOptions();
+    generateOptions = generationOptions.generateOptions;
+    generatorOptions = { ...generationOptions.generatorOptions, ...generatorOptions };
+  }
+
+  generatorOptions = { ...defaultGeneratorOptions, ...generatorOptions };
+
+  return generateFilesEntries({
+    generatorsPaths,
+    generateOptions,
+    generatorOptions
+  });
 };
+
+/**
+ * @param {string} outputPath path to put the generated output in
+ * @param {Array<string>} generatorsPaths array of paths to generator files
+ * @param {Object} generateOptions user parameters/options for the generation process. It is an object sent to all generators to configure the generation process (your job is to add props to it to configure the generator)
+ * @param {BaseGeneratorOptions} generatorOptions generator options
+ */
+exports.generate = async (generatorsPaths, outputPath, generateOptions, generatorOptions = {}) => {
+  if(!generatorsPaths) {
+    generatorsPaths = require('./index').getGenerators();
+  }
+
+  if(!outputPath) {
+    outputPath = getOutputPath();
+  }
+
+  if(!generateOptions) {
+    const generationOptions = await getGenerationOptions();
+    generateOptions = generationOptions.generateOptions;
+    generatorOptions = { ...generationOptions.generatorOptions, ...generatorOptions };
+  }
+
+  generatorOptions = { ...defaultGeneratorOptions, ...generatorOptions };
+
+  return generate({
+    outputPath,
+    generatorsPaths,
+    generateOptions,
+    generatorOptions
+  });
+};
+
+exports.defaultGeneratorOptions = defaultGeneratorOptions;

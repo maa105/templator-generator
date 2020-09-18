@@ -6,25 +6,29 @@ const generator = require('./generator');
  * @param {Object} generateOptions object sent to all generators to configure the generation process (your job is to add props to it to configure the generator)
  * @param {import('./generator.js').FileGeneratorOptions} generatorOptions
  */
-const generateFilesEntries = ({ projectName = 'project1', author = 'maa105' }, generatorOptions = {}) => {
+const generateFilesEntries = ({ version = '0.0.1', author = 'maa105' }, generatorOptions = {}) => {
   const codeLines = [
     `{`,
-    `  "name": "${projectName}-generator",`,
+    `  "name": "templator-generator-empty-project",`,
     `  "version": "1.0.0",`,
-    `  "description": "Project to generate ${projectName} project",`,
+    `  "description": "Project used to generate template generator, hopefully parametrising/smartifying them, and generating dynamic projects from those parametrised template generators",`,
     `  "main": "index.js",`,
     `  "scripts": {`,
-    `    "generate": "node ./.bin/generate.js"`,
+    `    "generate": "generate",`,
+    `    "generate-project": "generate-project",`,
+    `    "generateProject": "generate-project",`,
+    `    "template": "template-project",`,
+    `    "template-project": "template-project",`,
+    `    "templateProject": "template-project",`,
+    `    "templator-generator": "templator-generator",`,
+    `    "templatorGenerator": "templator-generator",`,
+    `    "link": "npm link templator-generator",`,
+    `    "unlink": "npm unlink templator-generator"`,
     `  },`,
     `  "author": "${author}",`,
     `  "license": "MIT",`,
     `  "dependencies": {`,
-    `    "fs-extra": "^9.0.1",`,
-    `    "lodash": "^4.17.20",`,
-    `    "minimist": "^1.2.5"`,
-    `  },`,
-    `  "bin": {`,
-    `    "generate-${projectName}": "./.bin/generate.js"`,
+    `    "templator-generator": "^${version}"`,
     `  }`,
     `}`,
     ``

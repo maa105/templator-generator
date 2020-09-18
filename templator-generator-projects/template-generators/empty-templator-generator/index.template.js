@@ -1,33 +1,14 @@
-const fileName = 'package.json';
-const filePath = './package.json';
-const generatorPath = './package.json.template.js';
+const fileName = 'index.js';
+const filePath = './index.js';
+const generatorPath = './index.template.js';
 const generator = require('./generator');
 /**
  * @param {Object} generateOptions object sent to all generators to configure the generation process (your job is to add props to it to configure the generator)
  * @param {import('./generator.js').FileGeneratorOptions} generatorOptions
  */
-const generateFilesEntries = ({ projectName = 'project1', author = 'maa105' }, generatorOptions = {}) => {
+const generateFilesEntries = (generateOptions, generatorOptions = {}) => {
   const codeLines = [
-    `{`,
-    `  "name": "${projectName}-generator",`,
-    `  "version": "1.0.0",`,
-    `  "description": "Project to generate ${projectName} project",`,
-    `  "main": "index.js",`,
-    `  "scripts": {`,
-    `    "generate": "node ./.bin/generate.js"`,
-    `  },`,
-    `  "author": "${author}",`,
-    `  "license": "MIT",`,
-    `  "dependencies": {`,
-    `    "fs-extra": "^9.0.1",`,
-    `    "lodash": "^4.17.20",`,
-    `    "minimist": "^1.2.5"`,
-    `  },`,
-    `  "bin": {`,
-    `    "generate-${projectName}": "./.bin/generate.js"`,
-    `  }`,
-    `}`,
-    ``
+    `throw new Error('This project is only for running template-project/generate-project command from the dependency "templator-generator"');`
   ];
   return generatorOptions.addFilePath ? { [fileName]: codeLines } : codeLines;
 };

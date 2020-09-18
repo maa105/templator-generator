@@ -1,18 +1,18 @@
 const fs = require('fs-extra');
 const path = require('path');
-const { map, filter, camelCase } = require('lodash');
+const { map, filter, repeat } = require('lodash');
 const { isBinaryFileSync } = require('isbinaryfile');
-const { cmdOptions, backTickStringify, capitalizeFirstLetter, getDirectoriesNames, getFilesNames, getAndRemoveOption, singleQuoteStringify } = require( '../utils' );
+const { cmdOptions, backTickStringify, getCodeFromLines, getDirectoriesNames, getFilesNames, getAndRemoveOption, singleQuoteStringify } = require( '../utils' );
 const { generateProject } = require( './generator.tasks' );
 
 const codifyFile = ({
   relativePath,
   inputFilePath,
   outputFilePath,
-  functionName,
   binaryFilesRelativePath,
   binaryFilesAbsolutePath,
-  fileIndex
+  fileIndex,
+  level
 }) => {
 
   if(isBinaryFileSync(inputFilePath)) {
@@ -20,17 +20,32 @@ const codifyFile = ({
     if(binaryFilesAbsolutePath) {
       fs.ensureDirSync(binaryFilesAbsolutePath);
       fs.copyFileSync(inputFilePath, path.join(binaryFilesAbsolutePath, fileIndex.toString()));
-      fs.writeFileSync(outputFilePath, [
+      fs.writeFileSync(outputFilePath, getCodeFromLines([
+        `const fileName = ${singleQuoteStringify(path.basename(inputFilePath))};`,
         `const filePath = './${singleQuoteStringify(path.join(relativePath, path.basename(inputFilePath)).replace(/\\/gmi, '/'), false)}';`,
-        `const ${functionName} = (/*{ options to customise code generation }*/) => {`,
-        `  const srcBinaryPath = './${singleQuoteStringify(path.join(binaryFilesRelativePath, fileIndex.toString()).replace(/\\/gmi, '/'), false)}';`,
-        `  return {`,
-        `    [filePath]: srcBinaryPath`,
-        `  };`,
+        `const generatorPath = './${singleQuoteStringify(path.join(relativePath, path.basename(outputFilePath)).replace(/\\/gmi, '/'), false)}';`,
+        `const srcBinaryPath = './${singleQuoteStringify(path.join(binaryFilesRelativePath, fileIndex.toString()).replace(/\\/gmi, '/'), false)}';`,
+        `/**`,
+        ` * @param {Object} generateOptions object sent to all generators to configure the generation process (your job is to add props to it to configure the generator)`,
+        ` * @param {import('${(level === 0 ? './' : repeat('../', level))}generator.js').FileGeneratorOptions} generatorOptions`,
+        ` */`,
+        `const generator = require('${(level === 0 ? './' : repeat('../', level))}generator');`,
+        `const generateFilesEntries = async (generateOptions, generatorOptions = {}) => {`,
+        `  return generatorOptions.addFilePath ? { [fileName]: srcBinaryPath } : srcBinaryPath;`,
         `};`,
-        `exports.${functionName} = ${functionName};`,
-        `exports.generate = ${functionName};`
-      ].join('\r\n'), { encoding: 'utf8' });
+        `exports.generateFilesEntries = generateFilesEntries;`,
+        ``,
+        `/**`,
+        ` * @param {string} outputPath path to put the generated output in`,
+        ` * @param {Object} generateOptions user parameters/options for the generation process. It is an object sent to all generators to configure the generation process (your job is to add props to it to configure the generator)`,
+        ` * @param {import('${(level === 0 ? './' : repeat('../', level))}generator.js').FileGeneratorOptions} generatorOptions generator options`,
+        ` */`,
+        `const generate = async (outputPath, generateOptions, generatorOptions = {}) => {`,
+        `  const filesEntries = await generateFilesEntries(generateOptions, generatorOptions);`,
+        `  return generator.writeFilesEntries(outputPath, filesEntries, generatorPath);`,
+        `};`,
+        `exports.generate = generate;`,
+      ]), { encoding: 'utf8' });
       return true;
     }
     else {
@@ -43,21 +58,36 @@ const codifyFile = ({
   const fileContent = fs.readFileSync(inputFilePath, { encoding: 'utf8' }).replace(/\r\n/gmi, '\n').replace(/\r/gmi, '\n').replace(/\n/gmi, '\r\n');
   const lines = fileContent.split('\r\n');
 
-  fs.writeFileSync(outputFilePath, [
+  fs.writeFileSync(outputFilePath, getCodeFromLines([
+    `const fileName = ${singleQuoteStringify(path.basename(inputFilePath))};`,
     `const filePath = './${singleQuoteStringify(path.join(relativePath, path.basename(inputFilePath)).replace(/\\/gmi, '/'), false)}';`,
-    `const ${functionName} = (/*{ options to customise code generation }*/) => {`,
+    `const generatorPath = './${singleQuoteStringify(path.join(relativePath, path.basename(outputFilePath)).replace(/\\/gmi, '/'), false)}';`,
+    `const generator = require('${(level === 0 ? './' : repeat('../', level))}generator');`,
+    `/**`,
+    ` * @param {Object} generateOptions object sent to all generators to configure the generation process (your job is to add props to it to configure the generator)`,
+    ` * @param {import('${(level === 0 ? './' : repeat('../', level))}generator.js').FileGeneratorOptions} generatorOptions`,
+    ` */`,
+    `const generateFilesEntries = (generateOptions, generatorOptions = {}) => {`,
     `  const codeLines = [`,
-    ...map(lines, (line, i, arr) => (
+    map(lines, (line, i, arr) => (
       `    ${backTickStringify(line)}${i !== arr.length - 1 ? ',' : ''}`
     )),
     `  ];`,
-    `  return {`,
-    `    [filePath]: codeLines`,
-    `  };`,
+    `  return generatorOptions.addFilePath ? { [fileName]: codeLines } : codeLines;`,
     `};`,
-    `exports.${functionName} = ${functionName};`,
-    `exports.generate = ${functionName};`
-  ].join('\r\n'), { encoding: 'utf8' });
+    `exports.generateFilesEntries = generateFilesEntries;`,
+    ``,
+    `/**`,
+    ` * @param {string} outputPath path to put the generated output in`,
+    ` * @param {Object} generateOptions user parameters/options for the generation process. It is an object sent to all generators to configure the generation process (your job is to add props to it to configure the generator)`,
+    ` * @param {import('${(level === 0 ? './' : repeat('../', level))}generator.js').FileGeneratorOptions} generatorOptions generator options`,
+    ` */`,
+    `const generate = async (outputPath, generateOptions, generatorOptions = {}) => {`,
+    `  const filesEntries = await generateFilesEntries(generateOptions, { ...generatorOptions, addFilePath: true });`,
+    `  return generator.writeFilesEntries(outputPath, filesEntries, generatorPath);`,
+    `};`,
+    `exports.generate = generate;`,
+  ]), { encoding: 'utf8' });
   return true;
 };
 
@@ -73,7 +103,6 @@ const templateProject = ({
     return true;
   },
   relativePath = './',
-  outGeneratorsPaths = [],
   binaryFilesAbsolutePath,
   binaryFilesRelativePath,
   fileIndex = 0
@@ -86,7 +115,6 @@ const templateProject = ({
   binaryFilesAbsolutePath = binaryFilesAbsolutePath || path.join(outputPath, './binary-files');
 
   const convertInToOut = (inPath) => path.resolve(path.join(outputPath, path.resolve(inPath).substr(inputPath.length)));
-  const getFuncName = (inputFilePath) => 'generate' + capitalizeFirstLetter(camelCase(path.parse(inputFilePath).name)) + '_' + path.parse(inputFilePath).ext.substr(1);
 
   fs.ensureDirSync(outputPath);
   
@@ -106,6 +134,8 @@ const templateProject = ({
     (name) => path.join(inputPath, name)
   );
   
+  const generatorsPaths = [];
+
   for(let i = 0; i < filesPaths.length; i++) {
     const filePath = filesPaths[i];
     const outFile = path.parse(convertInToOut(filePath));
@@ -116,14 +146,15 @@ const templateProject = ({
       relativePath,
       inputFilePath: filePath,
       outputFilePath: outFilePath,
-      functionName: getFuncName(filePath),
       binaryFilesAbsolutePath,
       binaryFilesRelativePath,
-      fileIndex: ++fileIndex
+      fileIndex: ++fileIndex,
+      level
     })) {
-      outGeneratorsPaths.push(path.join(relativePath, outFileName));
+      generatorsPaths.push('./' + path.join(relativePath, outFileName));
     }
   }
+  const generatorsPathsDirFirstIndex = generatorsPaths.length;
 
   for(let i = 0; i < dirs.length; i++) {
     fileIndex = templateProject({
@@ -132,21 +163,68 @@ const templateProject = ({
       level: level + 1,
       dirFilterFunc,
       fileFilterFunc,
-      relativePath: path.join(relativePath, path.parse(dirs[i]).name),
-      outGeneratorsPaths,
+      relativePath: './' + path.join(relativePath, path.parse(dirs[i]).name),
       binaryFilesAbsolutePath,
       binaryFilesRelativePath,
       fileIndex
     });
+    generatorsPaths.push('./' + path.join(relativePath, path.parse(dirs[i]).name));
   }
 
-  if(level === 0) {
-    return {
-      generatorsPaths: outGeneratorsPaths
-    };
-  }
+  const currDirGenerator = getCodeFromLines([
+    `const directoryName = ${level === 0 ? `''` : singleQuoteStringify(path.basename(relativePath))};`,
+    `const directoryPath = ${singleQuoteStringify(relativePath)};`,
+    `const generatorPath = './${singleQuoteStringify(path.join(relativePath, 'index.js').replace(/\\/gmi, '/'), false)}';`,
+    `const generator = require('${(level === 0 ? './' : repeat('../', level))}generator');`,
+    `const generators = [`,
+    map(generatorsPaths, (generatorPath, i) => (
+      `  ${singleQuoteStringify(generatorPath.replace(/\\/gmi, '/'))}${i !== generatorsPaths.length - 1 ? ',' : ''}`
+    )),
+    `];`,
+    `exports.getGenerators = () => [...generators];`,
+    `/**`,
+    ` * @param {Object} generateOptions object sent to all generators to configure the generation process (your job is to add props to it to configure the generator)`,
+    ` * @param {import('${(level === 0 ? './' : repeat('../', level))}generator.js').DirectoryGeneratorOptions} generatorOptions`,
+    ` */`,
+    `const generateFilesEntries = async (generateOptions, generatorOptions = generator.defaultGeneratorOptions) => {`,
+    `  generatorOptions = { ...generator.defaultGeneratorOptions, ...generatorOptions };`,
+    `  const gens = (`,
+    `    generatorOptions.generateRootFiles ? (`,
+    `      generatorOptions.generateSubDirectories ?`,
+    `        generators`,
+    `      : generators.slice(0, ${generatorsPathsDirFirstIndex})`,
+    `    )`,
+    `    : (`,
+    `      generatorOptions.generateSubDirectories ?`,
+    `        generators.slice(${generatorsPathsDirFirstIndex})`,
+    `      : null`,
+    `    )`,
+    `  );`,
+    `  if(gens == null) {`,
+    `    throw new Error('"generateSubDirectories" and "generateRootFiles" both false in generatorOptions!');`,
+    `  }`,
+    `  const children = await generator.generateFilesEntries(gens, generateOptions, generatorOptions);`,
+    `  return (generatorOptions.addDirectoryPath && directoryName) ? { [directoryName]: children } : children;`,
+    `};`,
+    `exports.generateFilesEntries = generateFilesEntries;`,
+    ``,
+    `/**`,
+    ` * @param {string} outputPath path to put the generated output in`,
+    ` * @param {Object} generateOptions user parameters/options for the generation process. It is an object sent to all generators to configure the generation process (your job is to add props to it to configure the generator)`,
+    ` * @param {import('${(level === 0 ? './' : repeat('../', level))}generator.js').DirectoryGeneratorOptions} generatorOptions generator options`,
+    ` */`,
+    `const generate = async (outputPath, generateOptions, generatorOptions) => {`,
+    `  const filesEntries = await generateFilesEntries(generateOptions, generatorOptions);`,
+    `  return generator.writeFilesEntries(outputPath, filesEntries, generatorPath);`,
+    `};`,
+    `exports.generate = generate;`
+  ]);
+
+  fs.writeFileSync(path.join(outputPath, 'index.js'), currDirGenerator, { encoding: 'utf8' });
+
   return fileIndex;
 };
+
 exports.templateProject = async () => {
   const help = getAndRemoveOption(cmdOptions, 'h', 'help');
   if(help) {
