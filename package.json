@@ -1,6 +1,6 @@
 {
   "name": "templator-generator",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "This is a project that templates projects (creates generator for them), and generates projects from the generated template generators. It aids and facilitates the creation of dynamic/configurable/smart code templates",
   "main": "./.bin/templator-generator.js",
   "keywords": [
