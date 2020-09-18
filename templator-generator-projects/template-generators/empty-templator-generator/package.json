@@ -2,7 +2,7 @@
   "name": "empty-templator-generator-generator",
   "version": "1.0.0",
   "description": "Project to generate empty-templator-generator project",
-  "main": "generator.js",
+  "main": "index.js",
   "scripts": {
     "generate": "node ./.bin/generate.js"
   },

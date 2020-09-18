@@ -42,7 +42,7 @@ const codifyFile = ({
         ` */`,
         `const generate = async (outputPath, generateOptions, generatorOptions = {}) => {`,
         `  const filesEntries = await generateFilesEntries(generateOptions, generatorOptions);`,
-        `  return generator.writeFilesEntries(outputPath, filesEntries, generatorPath);`,
+        `  return generator.writeFilesEntries(outputPath, filesEntries, generatorOptions, generatorPath);`,
         `};`,
         `exports.generate = generate;`,
       ]), { encoding: 'utf8' });
@@ -84,7 +84,7 @@ const codifyFile = ({
     ` */`,
     `const generate = async (outputPath, generateOptions, generatorOptions = {}) => {`,
     `  const filesEntries = await generateFilesEntries(generateOptions, { ...generatorOptions, addFilePath: true });`,
-    `  return generator.writeFilesEntries(outputPath, filesEntries, generatorPath);`,
+    `  return generator.writeFilesEntries(outputPath, filesEntries, generatorOptions, generatorPath);`,
     `};`,
     `exports.generate = generate;`,
   ]), { encoding: 'utf8' });
