@@ -1,3 +1,5 @@
 node_modules/
 **/node_modules/
 templator-generator-projects/generated-templates/**
+templator-generator-projects/template-generators/base-generator1
+templator-generator-projects/template-generators/empty-templator-generator1

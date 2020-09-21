@@ -1,7 +1,7 @@
 const fs = require('fs-extra');
 const path = require('path');
 const { mapValues, mapKeys, isArray, isString, isPlainObject, assign } = require('lodash');
-const { cmdOptions, getAndRemoveOption, getCodeFromLines, isNull } = require( './utils' );
+const { cmdOptions, getAndRemoveOption, getCodeFromLines, ifNull } = require( './utils' );
 
 /**
  * Base generator options. Seperate from user parameters
@@ -229,8 +229,8 @@ const getGenerationOptions = async () => {
     )
   };
 
-  const lineSeperator = isNull(getAndRemoveOption(generationOptions, '_LineSeperator', '_lineSeperator', 'LineSeperator', '-line-seperator', 'lineSeperator', 'line-seperator', false), '\r\n');
-  const writeEmptyFiles = isNull(getAndRemoveOption(generationOptions, '_WriteEmptyFiles', '_writeEmptyFiles', 'WriteEmptyFiles', '-write-empty-files', 'writeEmptyFiles', 'write-empty-files', false), true);
+  const lineSeperator = ifNull(getAndRemoveOption(generationOptions, '_LineSeperator', '_lineSeperator', 'LineSeperator', '-line-seperator', 'lineSeperator', 'line-seperator', false), '\r\n');
+  const writeEmptyFiles = ifNull(getAndRemoveOption(generationOptions, '_WriteEmptyFiles', '_writeEmptyFiles', 'WriteEmptyFiles', '-write-empty-files', 'writeEmptyFiles', 'write-empty-files', false), true);
 
   return {
     generateOptions: generationOptions,

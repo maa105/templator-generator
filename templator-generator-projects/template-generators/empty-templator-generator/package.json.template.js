@@ -1,4 +1,3 @@
-const fileName = 'package.json';
 const filePath = './package.json';
 const generatorPath = './package.json.template.js';
 const generator = require('./generator');
@@ -7,6 +6,8 @@ const generator = require('./generator');
  * @param {import('./generator.js').FileGeneratorOptions} generatorOptions
  */
 const generateFilesEntries = ({ version = '0.0.1', author = 'maa105' }, generatorOptions = {}) => {
+  const fileName = `package.json`; // you can customise the output file name or path(put ../filename or some_path/filename)
+
   const codeLines = [
     `{`,
     `  "name": "templator-generator-empty-project",`,
@@ -33,7 +34,7 @@ const generateFilesEntries = ({ version = '0.0.1', author = 'maa105' }, generato
     `}`,
     ``
   ];
-  return generatorOptions.addFilePath ? { [fileName]: codeLines } : codeLines;
+  return generatorOptions.addFilePath ? { [fileName]: codeLines } : codeLines; // you can return multiple files or an entire folder structure if you'd like
 };
 exports.generateFilesEntries = generateFilesEntries;
 

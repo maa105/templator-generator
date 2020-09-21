@@ -1,4 +1,3 @@
-const fileName = 'generate.js';
 const filePath = './.bin/generate.js';
 const generatorPath = './.bin/generate.template.js';
 const generator = require('../generator');
@@ -7,6 +6,8 @@ const generator = require('../generator');
  * @param {import('../generator.js').FileGeneratorOptions} generatorOptions
  */
 const generateFilesEntries = (generateOptions, generatorOptions = {}) => {
+  const fileName = `generate.js`; // you can customise the output file name or path(put ../filename or some_path/filename)
+
   const codeLines = [
     `#!/usr/bin/env node`,
     ``,
@@ -14,7 +15,7 @@ const generateFilesEntries = (generateOptions, generatorOptions = {}) => {
     `generate();`,
     ``
   ];
-  return generatorOptions.addFilePath ? { [fileName]: codeLines } : codeLines;
+  return generatorOptions.addFilePath ? { [fileName]: codeLines } : codeLines; // you can return multiple files or an entire folder structure if you'd like
 };
 exports.generateFilesEntries = generateFilesEntries;
 

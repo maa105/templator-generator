@@ -21,7 +21,6 @@ const codifyFile = ({
       fs.ensureDirSync(binaryFilesAbsolutePath);
       fs.copyFileSync(inputFilePath, path.join(binaryFilesAbsolutePath, fileIndex.toString()));
       fs.writeFileSync(outputFilePath, getCodeFromLines([
-        `const fileName = ${singleQuoteStringify(path.basename(inputFilePath))};`,
         `const filePath = './${singleQuoteStringify(path.join(relativePath, path.basename(inputFilePath)).replace(/\\/gmi, '/'), false)}';`,
         `const generatorPath = './${singleQuoteStringify(path.join(relativePath, path.basename(outputFilePath)).replace(/\\/gmi, '/'), false)}';`,
         `const srcBinaryPath = './${singleQuoteStringify(path.join(binaryFilesRelativePath, fileIndex.toString()).replace(/\\/gmi, '/'), false)}';`,
@@ -31,7 +30,9 @@ const codifyFile = ({
         ` */`,
         `const generator = require('${(level === 0 ? './' : repeat('../', level))}generator');`,
         `const generateFilesEntries = async (generateOptions, generatorOptions = {}) => {`,
-        `  return generatorOptions.addFilePath ? { [fileName]: srcBinaryPath } : srcBinaryPath;`,
+        `  const fileName = ${backTickStringify(path.basename(inputFilePath))}; // you can customise the output file name or path(put ../filename or some_path/filename)`,
+        ``,
+        `  return generatorOptions.addFilePath ? { [fileName]: srcBinaryPath } : srcBinaryPath; // you can return multiple files or an entire folder structure if you'd like`,
         `};`,
         `exports.generateFilesEntries = generateFilesEntries;`,
         ``,
@@ -59,7 +60,6 @@ const codifyFile = ({
   const lines = fileContent.split('\r\n');
 
   fs.writeFileSync(outputFilePath, getCodeFromLines([
-    `const fileName = ${singleQuoteStringify(path.basename(inputFilePath))};`,
     `const filePath = './${singleQuoteStringify(path.join(relativePath, path.basename(inputFilePath)).replace(/\\/gmi, '/'), false)}';`,
     `const generatorPath = './${singleQuoteStringify(path.join(relativePath, path.basename(outputFilePath)).replace(/\\/gmi, '/'), false)}';`,
     `const generator = require('${(level === 0 ? './' : repeat('../', level))}generator');`,
@@ -68,12 +68,14 @@ const codifyFile = ({
     ` * @param {import('${(level === 0 ? './' : repeat('../', level))}generator.js').FileGeneratorOptions} generatorOptions`,
     ` */`,
     `const generateFilesEntries = (generateOptions, generatorOptions = {}) => {`,
+    `  const fileName = ${backTickStringify(path.basename(inputFilePath))}; // you can customise the output file name or path(put ../filename or some_path/filename)`,
+    ``,
     `  const codeLines = [`,
     map(lines, (line, i, arr) => (
       `    ${backTickStringify(line)}${i !== arr.length - 1 ? ',' : ''}`
     )),
     `  ];`,
-    `  return generatorOptions.addFilePath ? { [fileName]: codeLines } : codeLines;`,
+    `  return generatorOptions.addFilePath ? { [fileName]: codeLines } : codeLines; // you can return multiple files or an entire folder structure if you'd like`,
     `};`,
     `exports.generateFilesEntries = generateFilesEntries;`,
     ``,
@@ -172,7 +174,6 @@ const templateProject = ({
   }
 
   const currDirGenerator = getCodeFromLines([
-    `const directoryName = ${level === 0 ? `''` : singleQuoteStringify(path.basename(relativePath))};`,
     `const directoryPath = ${singleQuoteStringify(relativePath)};`,
     `const generatorPath = './${singleQuoteStringify(path.join(relativePath, 'index.js').replace(/\\/gmi, '/'), false)}';`,
     `const generator = require('${(level === 0 ? './' : repeat('../', level))}generator');`,
@@ -187,6 +188,7 @@ const templateProject = ({
     ` * @param {import('${(level === 0 ? './' : repeat('../', level))}generator.js').DirectoryGeneratorOptions} generatorOptions`,
     ` */`,
     `const generateFilesEntries = async (generateOptions, generatorOptions = generator.defaultGeneratorOptions) => {`,
+    `  const directoryName = ${level === 0 ? `\`\`` : backTickStringify(path.basename(relativePath))}; // you can customise the output directory name or path(put ../dir_name or some_path/dir_name)`,
     `  generatorOptions = { ...generator.defaultGeneratorOptions, ...generatorOptions };`,
     `  const gens = (`,
     `    generatorOptions.generateRootFiles ? (`,
@@ -203,7 +205,7 @@ const templateProject = ({
     `    throw new Error('"generateSubDirectories" and "generateRootFiles" both false in generatorOptions!');`,
     `  }`,
     `  const children = await generator.generateFilesEntries(gens, generateOptions, generatorOptions);`,
-    `  return (generatorOptions.addDirectoryPath && directoryName) ? { [directoryName]: children } : children;`,
+    `  return (generatorOptions.addDirectoryPath && directoryName) ? { [directoryName]: children } : children; // you can return multiple files and directories or whatever your heart desires`,
     `};`,
     `exports.generateFilesEntries = generateFilesEntries;`,
     ``,
@@ -269,7 +271,7 @@ exports.templateProject = async () => {
     console.log(`Using input project "${inputPath}"`);
   }
 
-  const outputPath = path.resolve(getAndRemoveOption(cmdOptions, 'o', 'out', 'output', 'outputPath', 'outFolderPath', 'outputFolderPath', 'outDirectoryPath', 'outputDirectoryPath', 'outputDir', 'outDirPath', 'outputDirPath') || path.join('./templator-generator-projects/template-generators', path.basename(inputPath)));
+  const outputPath = path.resolve(getAndRemoveOption(cmdOptions, 'o', 'out', 'output', 'outputPath', 'outFolderPath', 'outputFolderPath', 'outDirectoryPath', 'outputDirectoryPath', 'outputDir', 'outDirPath', 'outputDirPath') || path.join('./templator-generator-projects', cmdOptions.dev ? 'generated-templates' : 'template-generators', path.basename(inputPath)));
 
   const { generatorsPaths } = templateProject({
     inputPath,
@@ -287,4 +289,3 @@ exports.templateProject = async () => {
   console.log(`  a- run \`cd ${JSON.stringify(outputPath)}`);
   console.log(`  b- run \`npm generate -- --g ${JSON.stringify(outputPath)} [--o <where_to_write_the_output_generated_project>] [--optionsFile <path_to_a_json_options_file_for_your_smartly_configured_generator>] [--<other_inline_option(s)_for_your_smartly_configured_generator_key> <other_inline_option(s)_for_your_smartly_configured_generator_value>]\``);
 };
-

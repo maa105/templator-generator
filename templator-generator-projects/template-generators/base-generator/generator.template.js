@@ -1,4 +1,3 @@
-const fileName = 'generator.js';
 const filePath = './generator.js';
 const generatorPath = './generator.template.js';
 const generator = require('./generator');
@@ -7,11 +6,13 @@ const generator = require('./generator');
  * @param {import('./generator.js').FileGeneratorOptions} generatorOptions
  */
 const generateFilesEntries = (generateOptions, generatorOptions = {}) => {
+  const fileName = `generator.js`; // you can customise the output file name or path(put ../filename or some_path/filename)
+
   const codeLines = [
     `const fs = require('fs-extra');`,
     `const path = require('path');`,
     `const { mapValues, mapKeys, isArray, isString, isPlainObject, assign } = require('lodash');`,
-    `const { cmdOptions, getAndRemoveOption, getCodeFromLines, isNull } = require( './utils' );`,
+    `const { cmdOptions, getAndRemoveOption, getCodeFromLines, ifNull } = require( './utils' );`,
     ``,
     `/**`,
     ` * Base generator options. Seperate from user parameters`,
@@ -239,8 +240,8 @@ const generateFilesEntries = (generateOptions, generatorOptions = {}) => {
     `    )`,
     `  };`,
     ``,
-    `  const lineSeperator = isNull(getAndRemoveOption(generationOptions, '_LineSeperator', '_lineSeperator', 'LineSeperator', '-line-seperator', 'lineSeperator', 'line-seperator', false), '\\r\\n');`,
-    `  const writeEmptyFiles = isNull(getAndRemoveOption(generationOptions, '_WriteEmptyFiles', '_writeEmptyFiles', 'WriteEmptyFiles', '-write-empty-files', 'writeEmptyFiles', 'write-empty-files', false), true);`,
+    `  const lineSeperator = ifNull(getAndRemoveOption(generationOptions, '_LineSeperator', '_lineSeperator', 'LineSeperator', '-line-seperator', 'lineSeperator', 'line-seperator', false), '\\r\\n');`,
+    `  const writeEmptyFiles = ifNull(getAndRemoveOption(generationOptions, '_WriteEmptyFiles', '_writeEmptyFiles', 'WriteEmptyFiles', '-write-empty-files', 'writeEmptyFiles', 'write-empty-files', false), true);`,
     ``,
     `  return {`,
     `    generateOptions: generationOptions,`,
@@ -325,7 +326,7 @@ const generateFilesEntries = (generateOptions, generatorOptions = {}) => {
     `exports.defaultGeneratorOptions = defaultGeneratorOptions;`,
     ``
   ];
-  return generatorOptions.addFilePath ? { [fileName]: codeLines } : codeLines;
+  return generatorOptions.addFilePath ? { [fileName]: codeLines } : codeLines; // you can return multiple files or an entire folder structure if you'd like
 };
 exports.generateFilesEntries = generateFilesEntries;
 
