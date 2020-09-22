@@ -32,7 +32,7 @@ const codifyFile = ({
         `  const fileName = ${backTickStringify(path.basename(inputFilePath))}; // you can customise the output file name or path(put '../some_path/filename' or 'some_path/filename' or './some_path/filename' or even absolute path [using '/some_path/filename' or '~/some_path/filename'])`,
         `  const filePath = ${backTickStringify('/' + path.join(relativePath, path.basename(inputFilePath)).replace(/\\/gmi, '/'))};`,
         ``,
-        `  return generatorOptions.addFilePath ? { [fileName]: codeLines } : codeLines; // you can return multiple files or an entire folder structure if you'd like, you can also use absolute paths by starting the key with slash(/) or tilda backslash(~/)`,
+        `  return generatorOptions.addFilePath ? { [fileName]: srcBinaryPath } : srcBinaryPath; // you can return multiple files or an entire folder structure if you'd like, you can also use absolute paths by starting the key with slash(/) or tilda backslash(~/)`,
         `};`,
         `exports.generateFilesEntries = generateFilesEntries;`,
         ``,
