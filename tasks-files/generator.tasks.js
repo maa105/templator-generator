@@ -35,7 +35,10 @@ const generateProjectFromCommandLineArguments = async () => {
     console.log(`This command generates a project with from a given project generator. What it does is just call the generate command for that project generator. It is useful cause if you have multiple project template generators, this command is like a central command to generate any of then instead of going to each one individually and running its generate command.`);
     console.log(`This command takes the following arguments:`);
     console.log(` --g <project_generator>. Where <project_generator> is the absolute or relative path to the project generator you want to run (1). Aliases(2): --gen --genPath --generator --generatorPath --p --proj --project --projPath --projectPath`);
+    console.log(`     generator can be the first positional argument too \`generate-project <project_generator>\``);
     console.log(` [--o <output_path>]. Where <output_path> is the path you want to put the generated project in. Default "./templator-generator-projects/generated-templates/<name_of_generator_folder>. Aliases(2): --out --output --outputPath --outputDirPath --outputDir`);
+    console.log(`     output_path can be the first positional argument too \`generate-project --g <project_generator> <output_path>\``);
+    console.log(`     output_path can be the second positional argument too \`generate-project <project_generator> <output_path>\``);
     console.log(` [--optionsFile <json_generator_options_file_path>]. Where <json_generator_options_file_path> is the path you want to send to the project generator to configure the generation process. Aliases(2): --jsonFile --optionsJsonFile --optionsJSONFile --generateOptionsFile --generateOptionsJsonFile' --generateOptionsJSONFile"`);
     console.log(` [--<option_key_to_send_to_generator> <option_value_to_send_to_generator>]. These have higher priority from those in the json file. e.g. --writeEmptyFiles (Aliases: --WriteEmptyFiles --_WriteEmptyFiles), --lineSeperator (Aliases: --LineSeperator, --_LineSeperator)`);
     console.log(` This command also accepts piped input as json strings for options that will be sent to the generator. The piped json options have less priority that the options json file.`);
@@ -44,7 +47,7 @@ const generateProjectFromCommandLineArguments = async () => {
     console.log(`(2) Aliases also work if you use them in kebab-case instead of camelCase.`);
     return;
   }
-  const generator = getAndRemoveOption(cmdOptions, 'g', 'gen', 'genPath', 'generator', 'generatorPath', 'p', 'proj', 'project', 'projPath', 'projectPath');
+  const generator = getAndRemoveOption(cmdOptions, 0, 'g', 'gen', 'genPath', 'generator', 'generatorPath', 'p', 'proj', 'project', 'projPath', 'projectPath');
   if(!generator) {
     throw new Error('Project name argument is required. Specify it using --g <project_generator>. Where <project_generator> is the generator project directory that you wish to run to generate your project. (for more info add --h or --help to the command');
   }
@@ -77,7 +80,7 @@ const generateProjectFromCommandLineArguments = async () => {
     console.log(`Using generator at "${generatorPath}".`)
   }
 
-  const outputPath = path.resolve(getAndRemoveOption(cmdOptions, 'o', 'out', 'output', 'outputPath', 'outFolderPath', 'outputFolderPath', 'outDirectoryPath', 'outputDirectoryPath', 'outputDir', 'outDirPath', 'outputDirPath') || path.join('./templator-generator-projects/generated-templates', path.basename(generator)));
+  const outputPath = path.resolve(getAndRemoveOption(cmdOptions, 0, 'o', 'out', 'output', 'outputPath', 'outFolderPath', 'outputFolderPath', 'outDirectoryPath', 'outputDirectoryPath', 'outputDir', 'outDirPath', 'outputDirPath') || path.join('./templator-generator-projects/generated-templates', path.basename(generator)));
 
   let generateOptionsFromStdin;
   if(process.stdin && !process.stdin.readableEnded && !process.stdin.isTTY) {

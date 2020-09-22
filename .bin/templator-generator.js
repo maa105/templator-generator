@@ -5,7 +5,7 @@ const { generateProject } = require('../tasks-files');
 const path = require('path');
 const fs = require( 'fs-extra' );
 
-const outputPath = cmdOptions._[0] || getAndRemoveOption(cmdOptions, 'name', 'folder', 'directory', 'path') || '.';
+const outputPath = getAndRemoveOption(cmdOptions, 0, 'name', 'folder', 'directory', 'path') || '.';
 
 generateProject({ ...cmdOptions, generatorPath: path.join(__dirname, '../templator-generator-projects/template-generators/empty-templator-generator'), outputPath, version: fs.readJSONSync(path.join(__dirname, '..', 'package.json')).version })
 .then(() => {

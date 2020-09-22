@@ -50,19 +50,30 @@ const getAndRemoveOption = (options, ...keys) => {
     checkOtherCase = keys.pop();
   }
   for(let i = 0; i < keys.length; i++) {
-    if(options[keys[i]]) {
-      const opt = options[keys[i]];
-      delete options[keys[i]];
+    let key = keys[i];
+    if(isNumber(key)) {
+      if(options._[key]) {
+        const opt = options._[key];
+        options._.splice(key, 1);
+        return opt;
+      }
+      else {
+        key = key.toString();
+      }
+    }
+    if(options[key]) {
+      const opt = options[key];
+      delete options[key];
       return opt;
     }
-    if(checkOtherCase && options[camelCase(keys[i])]) {
-      const opt = options[camelCase(keys[i])];
-      delete options[camelCase(keys[i])];
+    if(checkOtherCase && options[camelCase(key)]) {
+      const opt = options[camelCase(key)];
+      delete options[camelCase(key)];
       return opt;
     }
-    if(checkOtherCase && options[kebabCase(keys[i])]) {
-      const opt = options[kebabCase(keys[i])];
-      delete options[kebabCase(keys[i])];
+    if(checkOtherCase && options[kebabCase(key)]) {
+      const opt = options[kebabCase(key)];
+      delete options[kebabCase(key)];
       return opt;
     }
   }
@@ -139,11 +150,11 @@ const codeTransform = (...linesOrCollectionsOrConfig) => {
 
   const flattened = flattenDeep(linesOrCollections);
 
-  const mapFunc = (config.mapFunc || config.mapFunction || config.map);
+  const mapFunc = (config.mapFunc || config.mapFunction || config.map); 
   const mapped = mapFunc ? map(flattened, mapFunc) : flattened;
-
+  
   const filtered = filter(mapped, (line) => line != null);
-
+  
   const trimTheEnd = (config.trim || config.trimEnd || config.trimRight);
   const trimmed = trimTheEnd ? map(filtered, trimEnd) : filtered;
 
@@ -155,7 +166,7 @@ const codeTransform = (...linesOrCollectionsOrConfig) => {
 
   const seperator = (config.sep || config.seperator);
   const seperated = seperator ? map(startAppended, (line, i, lines) => line + (i === lines.length - 1 ? '' : seperator)) : startAppended;
-
+  
   const indentCnt = (config.indent || config.indentCount || config.indentCnt);
   const indentChar = (config.indentChar || config.indentCharacter || config.indentStr || config.indentString);
   const indented = (indentCnt || indentChar) ? indent(seperated, indentCnt || 1, indentChar || ' ') : seperated;
@@ -212,9 +223,9 @@ exports.wait = (duration, data) => new Promise((resolve) => setTimeout(resolve.b
 
 /**
  * promisified wrapper to spawn method
- * @param {string} cmd
- * @param {string[]} cmdArgs
- * @param {{errorMessage:string,env:object|true,cwd:string,detached:boolean,shell:boolean,stdio:[import('stream').Stream|string]}} options
+ * @param {string} cmd 
+ * @param {string[]} cmdArgs 
+ * @param {{errorMessage:string,env:object|true,cwd:string,detached:boolean,shell:boolean,stdio:[import('stream').Stream|string]}} options 
  * @returns {Promise<any> & {childProcess:import('child_process').ChildProcess}}
  */
 const execCmd = (cmd, cmdArgs = [], options = {}) => {

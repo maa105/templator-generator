@@ -171,7 +171,7 @@ const generate = async ({
 };
 
 const getOutputPath = () => {
-  const outputPath = getAndRemoveOption(cmdOptions, 'path', 'o', 'out', 'output', 'outputPath', 'outFolderPath', 'outputFolderPath', 'outDirectoryPath', 'outputDirectoryPath', 'outputDir', 'outDirPath', 'outputDirPath');
+  const outputPath = getAndRemoveOption(cmdOptions, 0, 'path', 'o', 'out', 'output', 'outputPath', 'outFolderPath', 'outputFolderPath', 'outDirectoryPath', 'outputDirectoryPath', 'outputDir', 'outDirPath', 'outputDirPath');
   if(!outputPath) {
     throw new Error('Output path argument is required. Specify it using --o <path_to_put_generated_project_in>');
   }

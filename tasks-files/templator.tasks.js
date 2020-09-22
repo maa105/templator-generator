@@ -234,13 +234,16 @@ exports.templateProject = async () => {
     console.log(`P.S. templateProject stands for generate a project generator from project XYZ. So like make project XYZ a template. Thats the best name I could come up with as generateGenerator sound aweful :|`);
     console.log(`This command takes the following arguments:`);
     console.log(` --i <path_to_project_to_template>. Where <path_to_project_to_template> is the absolute or relative path to the project you want to generate a generator for. Aliases(1): --in --input --folder --dir --directory --inFolderPath --inputFolderPath --folderPath --inDirectoryPath --inputDirectoryPath --directoryPath --inDirPath --inputDirPath --dirPath --p --proj --project --projPath --projectPath`);
+    console.log(`     input project path can be first positional argument too \`template-project <path_to_project_to_template>\``);
     console.log(` [--o <output_path>]. Where <output_path> is the path you want to put the generated project generator in. Default "./templator-generator-projects/template-generators/<name_of_input_folder>. Aliases(1): --out --output --outFolderPath --outputFolderPath --outDirectoryPath --outputDirectoryPath --outDirPath --outputDirPath`);
+    console.log(`     output path can be first positional argument too \`template-project --i <path_to_project_to_template> <output_path>\``);
+    console.log(`     output path can be second positional argument too \`template-project <path_to_project_to_template> <output_path>\``);
     console.log(``);
     console.log(`(1) Aliases also work if you use them in kebab-case instead of camelCase.`);
     return;
   }
 
-  const input = getAndRemoveOption(cmdOptions, 'i', 'in', 'input', 'folder', 'dir', 'directory', 'inFolderPath', 'inputFolderPath', 'folderPath', 'inDirectoryPath', 'inputDirectoryPath', 'directoryPath', 'inDirPath', 'inputDirPath', 'dirPath', 'p', 'proj', 'project', 'projPath', 'projectPath');
+  const input = getAndRemoveOption(cmdOptions, 0, 'i', 'in', 'input', 'folder', 'dir', 'directory', 'inFolderPath', 'inputFolderPath', 'folderPath', 'inDirectoryPath', 'inputDirectoryPath', 'directoryPath', 'inDirPath', 'inputDirPath', 'dirPath', 'p', 'proj', 'project', 'projPath', 'projectPath');
   if(!input) {
     throw new Error('Input project path argument is required. Specify it using --i <path_to_project_to_template>. Where <path_to_project_to_template> is the absolute or relative path to the project you want to generate a generator for. (for more info add --h or --help to the command');
   }
@@ -272,7 +275,7 @@ exports.templateProject = async () => {
     console.log(`Using input project "${inputPath}"`);
   }
 
-  const outputPath = path.resolve(getAndRemoveOption(cmdOptions, 'o', 'out', 'output', 'outputPath', 'outFolderPath', 'outputFolderPath', 'outDirectoryPath', 'outputDirectoryPath', 'outputDir', 'outDirPath', 'outputDirPath') || path.join('./templator-generator-projects', cmdOptions.dev ? 'generated-templates' : 'template-generators', path.basename(inputPath)));
+  const outputPath = path.resolve(getAndRemoveOption(cmdOptions, 0, 'o', 'out', 'output', 'outputPath', 'outFolderPath', 'outputFolderPath', 'outDirectoryPath', 'outputDirectoryPath', 'outputDir', 'outDirPath', 'outputDirPath') || path.join('./templator-generator-projects', cmdOptions.dev ? 'generated-templates' : 'template-generators', path.basename(inputPath)));
 
   const { generatorsPaths } = templateProject({
     inputPath,
