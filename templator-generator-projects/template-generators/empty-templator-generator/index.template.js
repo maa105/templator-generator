@@ -1,4 +1,3 @@
-const filePath = './index.js';
 const generatorPath = './index.template.js';
 const generator = require('./generator');
 /**
@@ -6,12 +5,13 @@ const generator = require('./generator');
  * @param {import('./generator.js').FileGeneratorOptions} generatorOptions
  */
 const generateFilesEntries = (generateOptions, generatorOptions = {}) => {
-  const fileName = `index.js`; // you can customise the output file name or path(put ../filename or some_path/filename)
+  const fileName = `index.js`; // you can customise the output file name or path(put '../some_path/filename' or 'some_path/filename' or './some_path/filename' or even absolute path [using '/some_path/filename' or '~/some_path/filename'])
+  const filePath = `/index.js`;
 
   const codeLines = [
     `throw new Error('This project is only for running template-project/generate-project command from the dependency "templator-generator"');`
   ];
-  return generatorOptions.addFilePath ? { [fileName]: codeLines } : codeLines; // you can return multiple files or an entire folder structure if you'd like
+  return generatorOptions.addFilePath ? { [fileName]: codeLines } : codeLines; // you can return multiple files or an entire folder structure if you'd like, you can also use absolute paths by starting the key with slash(/) or tilda backslash(~/)
 };
 exports.generateFilesEntries = generateFilesEntries;
 

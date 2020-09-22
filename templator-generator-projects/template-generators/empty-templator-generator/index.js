@@ -1,4 +1,3 @@
-const directoryPath = './';
 const generatorPath = './index.js';
 const generator = require('./generator');
 const generators = [
@@ -11,7 +10,9 @@ exports.getGenerators = () => [...generators];
  * @param {import('./generator.js').DirectoryGeneratorOptions} generatorOptions
  */
 const generateFilesEntries = async (generateOptions, generatorOptions = generator.defaultGeneratorOptions) => {
-  const directoryName = ``; // you can customise the output directory name or path(put ../dir_name or some_path/dir_name)
+  const directoryName = ``; // you can customise the output directory name or path(put '../some_path/dir_name' or 'some_path/dir_name' or even absolute path [using '/some_path/dir_name' or '~/some_path/dir_name'])
+  const directoryPath = `/`;
+
   generatorOptions = { ...generator.defaultGeneratorOptions, ...generatorOptions };
   const gens = (
     generatorOptions.generateRootFiles ? (
@@ -28,7 +29,7 @@ const generateFilesEntries = async (generateOptions, generatorOptions = generato
     throw new Error('"generateSubDirectories" and "generateRootFiles" both false in generatorOptions!');
   }
   const children = await generator.generateFilesEntries(gens, generateOptions, generatorOptions);
-  return (generatorOptions.addDirectoryPath && directoryName) ? { [directoryName]: children } : children; // you can return multiple files and directories or whatever your heart desires
+  return (generatorOptions.addDirectoryPath && directoryName) ? { [directoryName]: children } : children; // you can return multiple files and directories or whatever your heart desires, you can also use absolute paths by starting the key with slash(/) or tilda backslash(~/)
 };
 exports.generateFilesEntries = generateFilesEntries;
 

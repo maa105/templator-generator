@@ -84,24 +84,32 @@ const flattenFilesEntries = ({
   relativePath = './',
   cumulativeFileEntries = {}
 }) => {
-  for(let entryRelativePath in filesEntries) {
-    const entryValue = filesEntries[entryRelativePath];
+  for(let entryPath in filesEntries) {
+    const entryValue = filesEntries[entryPath];
+    const startsWithSlash = entryPath[0] === '/' || entryPath[0] === '\\';
+    const startsWithTildaSlash = entryPath.indexOf('~/') === 0 || entryPath.indexOf('~\\') === 0;
+    const isAbsolute = startsWithSlash || startsWithTildaSlash;
+    const normalizedPath = (
+      isAbsolute ?
+        path.normalize(path.join('./', entryPath.substr(startsWithTildaSlash ? 2 : 1)))
+        : path.normalize(path.join(relativePath, entryPath))
+    );
     if(isArray(entryValue)) {
-      cumulativeFileEntries[path.normalize(path.join(relativePath, entryRelativePath))] = entryValue;
+      cumulativeFileEntries[normalizedPath] = entryValue;
     }
     else if(isString(entryValue)) {
-      cumulativeFileEntries[path.normalize(path.join(relativePath, entryRelativePath))] = entryValue;
+      cumulativeFileEntries[normalizedPath] = entryValue;
     }
     else if(isPlainObject(entryValue)) {
       flattenFilesEntries({
         filesEntries: entryValue,
         generatorPath,
-        relativePath: path.normalize(path.join(relativePath, entryRelativePath)),
+        relativePath: normalizedPath,
         cumulativeFileEntries
       });
     }
     else {
-      console.warn(`WARN: Generator file "${generatorPath}" returned an invalid data type for file entry "${entryRelativePath}" (${Object.prototype.toString.call(filesEntries)}). The generator should return an object of file(s) entries(s) with key being file paths to write and the value array(of code line for code files)/string(path to binary file to copy)/object(filesEntries[recursive]), or null/undefined to suppress generation. Skipping invalid entry`);
+      console.warn(`WARN: Generator file "${generatorPath}" returned an invalid data type for file entry "${entryPath}" (${Object.prototype.toString.call(filesEntries)}). The generator should return an object of file(s) entries(s) with key being file paths to write and the value array(of code line for code files)/string(path to binary file to copy)/object(filesEntries[recursive]), or null/undefined to suppress generation. Skipping invalid entry`);
     }
   }
   return cumulativeFileEntries;

@@ -1,4 +1,3 @@
-const filePath = './generator.js';
 const generatorPath = './generator.template.js';
 const generator = require('./generator');
 /**
@@ -6,7 +5,8 @@ const generator = require('./generator');
  * @param {import('./generator.js').FileGeneratorOptions} generatorOptions
  */
 const generateFilesEntries = (generateOptions, generatorOptions = {}) => {
-  const fileName = `generator.js`; // you can customise the output file name or path(put ../filename or some_path/filename)
+  const fileName = `generator.js`; // you can customise the output file name or path(put '../some_path/filename' or 'some_path/filename' or './some_path/filename' or even absolute path [using '/some_path/filename' or '~/some_path/filename'])
+  const filePath = `/generator.js`;
 
   const codeLines = [
     `const fs = require('fs-extra');`,
@@ -95,24 +95,32 @@ const generateFilesEntries = (generateOptions, generatorOptions = {}) => {
     `  relativePath = './',`,
     `  cumulativeFileEntries = {}`,
     `}) => {`,
-    `  for(let entryRelativePath in filesEntries) {`,
-    `    const entryValue = filesEntries[entryRelativePath];`,
+    `  for(let entryPath in filesEntries) {`,
+    `    const entryValue = filesEntries[entryPath];`,
+    `    const startsWithSlash = entryPath[0] === '/' || entryPath[0] === '\\\\';`,
+    `    const startsWithTildaSlash = entryPath.indexOf('~/') === 0 || entryPath.indexOf('~\\\\') === 0;`,
+    `    const isAbsolute = startsWithSlash || startsWithTildaSlash;`,
+    `    const normalizedPath = (`,
+    `      isAbsolute ?`,
+    `        path.normalize(path.join('./', entryPath.substr(startsWithTildaSlash ? 2 : 1)))`,
+    `        : path.normalize(path.join(relativePath, entryPath))`,
+    `    );`,
     `    if(isArray(entryValue)) {`,
-    `      cumulativeFileEntries[path.normalize(path.join(relativePath, entryRelativePath))] = entryValue;`,
+    `      cumulativeFileEntries[normalizedPath] = entryValue;`,
     `    }`,
     `    else if(isString(entryValue)) {`,
-    `      cumulativeFileEntries[path.normalize(path.join(relativePath, entryRelativePath))] = entryValue;`,
+    `      cumulativeFileEntries[normalizedPath] = entryValue;`,
     `    }`,
     `    else if(isPlainObject(entryValue)) {`,
     `      flattenFilesEntries({`,
     `        filesEntries: entryValue,`,
     `        generatorPath,`,
-    `        relativePath: path.normalize(path.join(relativePath, entryRelativePath)),`,
+    `        relativePath: normalizedPath,`,
     `        cumulativeFileEntries`,
     `      });`,
     `    }`,
     `    else {`,
-    `      console.warn(\`WARN: Generator file "\${generatorPath}" returned an invalid data type for file entry "\${entryRelativePath}" (\${Object.prototype.toString.call(filesEntries)}). The generator should return an object of file(s) entries(s) with key being file paths to write and the value array(of code line for code files)/string(path to binary file to copy)/object(filesEntries[recursive]), or null/undefined to suppress generation. Skipping invalid entry\`);`,
+    `      console.warn(\`WARN: Generator file "\${generatorPath}" returned an invalid data type for file entry "\${entryPath}" (\${Object.prototype.toString.call(filesEntries)}). The generator should return an object of file(s) entries(s) with key being file paths to write and the value array(of code line for code files)/string(path to binary file to copy)/object(filesEntries[recursive]), or null/undefined to suppress generation. Skipping invalid entry\`);`,
     `    }`,
     `  }`,
     `  return cumulativeFileEntries;`,
@@ -326,7 +334,7 @@ const generateFilesEntries = (generateOptions, generatorOptions = {}) => {
     `exports.defaultGeneratorOptions = defaultGeneratorOptions;`,
     ``
   ];
-  return generatorOptions.addFilePath ? { [fileName]: codeLines } : codeLines; // you can return multiple files or an entire folder structure if you'd like
+  return generatorOptions.addFilePath ? { [fileName]: codeLines } : codeLines; // you can return multiple files or an entire folder structure if you'd like, you can also use absolute paths by starting the key with slash(/) or tilda backslash(~/)
 };
 exports.generateFilesEntries = generateFilesEntries;
 

@@ -1,6 +1,6 @@
 const fs = require('fs-extra');
 const path = require('path');
-const { map, filter, repeat } = require('lodash');
+const { map, filter, repeat, trimStart } = require('lodash');
 const { isBinaryFileSync } = require('isbinaryfile');
 const { cmdOptions, backTickStringify, getCodeFromLines, getDirectoriesNames, getFilesNames, getAndRemoveOption, singleQuoteStringify } = require( '../utils' );
 const { generateProject } = require( './generator.tasks' );
@@ -21,7 +21,6 @@ const codifyFile = ({
       fs.ensureDirSync(binaryFilesAbsolutePath);
       fs.copyFileSync(inputFilePath, path.join(binaryFilesAbsolutePath, fileIndex.toString()));
       fs.writeFileSync(outputFilePath, getCodeFromLines([
-        `const filePath = './${singleQuoteStringify(path.join(relativePath, path.basename(inputFilePath)).replace(/\\/gmi, '/'), false)}';`,
         `const generatorPath = './${singleQuoteStringify(path.join(relativePath, path.basename(outputFilePath)).replace(/\\/gmi, '/'), false)}';`,
         `const srcBinaryPath = './${singleQuoteStringify(path.join(binaryFilesRelativePath, fileIndex.toString()).replace(/\\/gmi, '/'), false)}';`,
         `/**`,
@@ -30,9 +29,10 @@ const codifyFile = ({
         ` */`,
         `const generator = require('${(level === 0 ? './' : repeat('../', level))}generator');`,
         `const generateFilesEntries = async (generateOptions, generatorOptions = {}) => {`,
-        `  const fileName = ${backTickStringify(path.basename(inputFilePath))}; // you can customise the output file name or path(put ../filename or some_path/filename)`,
+        `  const fileName = ${backTickStringify(path.basename(inputFilePath))}; // you can customise the output file name or path(put '../some_path/filename' or 'some_path/filename' or './some_path/filename' or even absolute path [using '/some_path/filename' or '~/some_path/filename'])`,
+        `  const filePath = ${backTickStringify('/' + path.join(relativePath, path.basename(inputFilePath)).replace(/\\/gmi, '/'))};`,
         ``,
-        `  return generatorOptions.addFilePath ? { [fileName]: srcBinaryPath } : srcBinaryPath; // you can return multiple files or an entire folder structure if you'd like`,
+        `  return generatorOptions.addFilePath ? { [fileName]: codeLines } : codeLines; // you can return multiple files or an entire folder structure if you'd like, you can also use absolute paths by starting the key with slash(/) or tilda backslash(~/)`,
         `};`,
         `exports.generateFilesEntries = generateFilesEntries;`,
         ``,
@@ -60,7 +60,6 @@ const codifyFile = ({
   const lines = fileContent.split('\r\n');
 
   fs.writeFileSync(outputFilePath, getCodeFromLines([
-    `const filePath = './${singleQuoteStringify(path.join(relativePath, path.basename(inputFilePath)).replace(/\\/gmi, '/'), false)}';`,
     `const generatorPath = './${singleQuoteStringify(path.join(relativePath, path.basename(outputFilePath)).replace(/\\/gmi, '/'), false)}';`,
     `const generator = require('${(level === 0 ? './' : repeat('../', level))}generator');`,
     `/**`,
@@ -68,14 +67,15 @@ const codifyFile = ({
     ` * @param {import('${(level === 0 ? './' : repeat('../', level))}generator.js').FileGeneratorOptions} generatorOptions`,
     ` */`,
     `const generateFilesEntries = (generateOptions, generatorOptions = {}) => {`,
-    `  const fileName = ${backTickStringify(path.basename(inputFilePath))}; // you can customise the output file name or path(put ../filename or some_path/filename)`,
+    `  const fileName = ${backTickStringify(path.basename(inputFilePath))}; // you can customise the output file name or path(put '../some_path/filename' or 'some_path/filename' or './some_path/filename' or even absolute path [using '/some_path/filename' or '~/some_path/filename'])`,
+    `  const filePath = ${backTickStringify('/' + path.join(relativePath, path.basename(inputFilePath)).replace(/\\/gmi, '/'))};`,
     ``,
     `  const codeLines = [`,
     map(lines, (line, i, arr) => (
       `    ${backTickStringify(line)}${i !== arr.length - 1 ? ',' : ''}`
     )),
     `  ];`,
-    `  return generatorOptions.addFilePath ? { [fileName]: codeLines } : codeLines; // you can return multiple files or an entire folder structure if you'd like`,
+    `  return generatorOptions.addFilePath ? { [fileName]: codeLines } : codeLines; // you can return multiple files or an entire folder structure if you'd like, you can also use absolute paths by starting the key with slash(/) or tilda backslash(~/)`,
     `};`,
     `exports.generateFilesEntries = generateFilesEntries;`,
     ``,
@@ -174,7 +174,6 @@ const templateProject = ({
   }
 
   const currDirGenerator = getCodeFromLines([
-    `const directoryPath = ${singleQuoteStringify(relativePath)};`,
     `const generatorPath = './${singleQuoteStringify(path.join(relativePath, 'index.js').replace(/\\/gmi, '/'), false)}';`,
     `const generator = require('${(level === 0 ? './' : repeat('../', level))}generator');`,
     `const generators = [`,
@@ -188,7 +187,9 @@ const templateProject = ({
     ` * @param {import('${(level === 0 ? './' : repeat('../', level))}generator.js').DirectoryGeneratorOptions} generatorOptions`,
     ` */`,
     `const generateFilesEntries = async (generateOptions, generatorOptions = generator.defaultGeneratorOptions) => {`,
-    `  const directoryName = ${level === 0 ? `\`\`` : backTickStringify(path.basename(relativePath))}; // you can customise the output directory name or path(put ../dir_name or some_path/dir_name)`,
+    `  const directoryName = ${level === 0 ? `\`\`` : backTickStringify(path.basename(relativePath))}; // you can customise the output directory name or path(put '../some_path/dir_name' or 'some_path/dir_name' or even absolute path [using '/some_path/dir_name' or '~/some_path/dir_name'])`,
+    `  const directoryPath = ${backTickStringify(trimStart(relativePath, '.').replace(/\\/gmi, '/'))};`,
+    ``,
     `  generatorOptions = { ...generator.defaultGeneratorOptions, ...generatorOptions };`,
     `  const gens = (`,
     `    generatorOptions.generateRootFiles ? (`,
@@ -205,7 +206,7 @@ const templateProject = ({
     `    throw new Error('"generateSubDirectories" and "generateRootFiles" both false in generatorOptions!');`,
     `  }`,
     `  const children = await generator.generateFilesEntries(gens, generateOptions, generatorOptions);`,
-    `  return (generatorOptions.addDirectoryPath && directoryName) ? { [directoryName]: children } : children; // you can return multiple files and directories or whatever your heart desires`,
+    `  return (generatorOptions.addDirectoryPath && directoryName) ? { [directoryName]: children } : children; // you can return multiple files and directories or whatever your heart desires, you can also use absolute paths by starting the key with slash(/) or tilda backslash(~/)`,
     `};`,
     `exports.generateFilesEntries = generateFilesEntries;`,
     ``,

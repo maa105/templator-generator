@@ -1,6 +1,6 @@
 const fs = require('fs-extra');
 const path = require('path');
-const { camelCase, kebabCase, trim, map, flattenDeep, filter, trimEnd, assign, omit, isPlainObject } = require( 'lodash' );
+const { camelCase, kebabCase, trim, map, flattenDeep, filter, trimEnd, assign, omit, isPlainObject, isArray, isString, isFunction, isNumber } = require( 'lodash' );
 const { spawn } = require( 'child_process' );
 
 const cmdOptions = require('minimist')(((args) => {
@@ -109,15 +109,35 @@ const defaultCodeTransformConfig = {
 
 /**
  * Deep flattens input array(s) then passes them in the following pipeling: map(using mapFunc), filter(removes null/undefined), trimEnd, endAppend, startAppend, seperate(using seperator), indent.
- * Stages in pipeline can be configured by adding a CodeTransformConfig object as the last argument in the function call e.g. codeTransform([...],[...],[...],{seperator: ',', indentCount: 6})
- * @param  {...Array<string | object> | CodeTransformConfig} linesOrCollection if last lines entry is an object it is considered a CodeTransformConfig object
+ * Stages in pipeline can be configured by adding a CodeTransformConfig object for all settings, or a string for seperator, or a function for a mapFunction, or a number of indentCount
+ * @param  {...Array<string | object> | CodeTransformConfig | string | number | Function} linesOrCollectionsOrConfig if last lines entry is an object it is considered a CodeTransformConfig object
  */
-const codeTransform = (...linesOrCollection) => {
-  let config = defaultCodeTransformConfig;
-  if(isPlainObject(linesOrCollection[linesOrCollection.length - 1])) {
-    config = { ...config, ...linesOrCollection.pop() };
+const codeTransform = (...linesOrCollectionsOrConfig) => {
+  const config = { ...defaultCodeTransformConfig };
+  const linesOrCollections = [];
+  for(let i = 0; i < linesOrCollectionsOrConfig.length; i++) {
+    const entry = linesOrCollectionsOrConfig[i];
+    if(isArray(entry)) {
+      linesOrCollections.push(entry);
+    }
+    else if(isString(entry)) {
+      config.seperator = entry;
+    }
+    else if(isFunction(entry)) {
+      config.mapFunc = entry;
+    }
+    else if(isNumber(entry)) {
+      config.indentCount = entry;
+    }
+    else if(isPlainObject(entry)) {
+      assign(config, entry);
+    }
+    else {
+      throw new Error(`Invalid lineOrCollectionOrConfig type "${Object.prototype.toString.call(entry)}" must be an array of strings for a collection or lines to transform, a string for seperator, a function for mapFunc, a number for indent, a plain object (of type CodeTransformConfig) for all config settings`);
+    }
   }
-  const flattened = flattenDeep(linesOrCollection);
+
+  const flattened = flattenDeep(linesOrCollections);
 
   const mapFunc = (config.mapFunc || config.mapFunction || config.map); 
   const mapped = mapFunc ? map(flattened, mapFunc) : flattened;
