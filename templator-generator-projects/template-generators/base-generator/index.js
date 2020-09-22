@@ -1,11 +1,14 @@
 const generatorPath = './index.js';
 const generator = require('./generator');
-const generators = [
+const filesGenerators = [
   './generator.template.js',
   './package.json.template.js',
-  './utils.template.js',
+  './utils.template.js'
+];
+const directoriesGenerators = [
   './.bin'
 ];
+const generators = [...filesGenerators, ...directoriesGenerators];
 exports.getGenerators = () => [...generators];
 /**
  * @param {Object} generateOptions object sent to all generators to configure the generation process (your job is to add props to it to configure the generator)
@@ -20,10 +23,10 @@ const generateFilesEntries = async (generateOptions, generatorOptions = generato
     generatorOptions.generateRootFiles ? (
       generatorOptions.generateSubDirectories ?
         generators
-        : generators.slice(0, 3)
+        : filesGenerators
     ) : (
       generatorOptions.generateSubDirectories ?
-        generators.slice(3)
+        directoriesGenerators
         : null
     )
   );

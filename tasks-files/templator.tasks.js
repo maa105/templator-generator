@@ -2,7 +2,7 @@ const fs = require('fs-extra');
 const path = require('path');
 const { map, filter, repeat, trimStart } = require('lodash');
 const { isBinaryFileSync } = require('isbinaryfile');
-const { cmdOptions, backTickStringify, getCodeFromLines, getDirectoriesNames, getFilesNames, getAndRemoveOption, singleQuoteStringify } = require( '../utils' );
+const { cmdOptions, backTickStringify, getCodeFromLines, getDirectoriesNames, getFilesNames, getAndRemoveOption, singleQuoteStringify, codeTransform } = require( '../utils' );
 const { generateProject } = require( './generator.tasks' );
 
 const codifyFile = ({
@@ -71,9 +71,9 @@ const codifyFile = ({
     `  const filePath = ${backTickStringify('/' + path.join(relativePath, path.basename(inputFilePath)).replace(/\\/gmi, '/'))};`,
     ``,
     `  const codeLines = [`,
-    map(lines, (line, i, arr) => (
-      `    ${backTickStringify(line)}${i !== arr.length - 1 ? ',' : ''}`
-    )),
+    codeTransform(lines, (line) => (
+      `    ${backTickStringify(line)}`
+    ), ','),
     `  ];`,
     `  return generatorOptions.addFilePath ? { [fileName]: codeLines } : codeLines; // you can return multiple files or an entire folder structure if you'd like, you can also use absolute paths by starting the key with slash(/) or tilda backslash(~/)`,
     `};`,
@@ -176,11 +176,17 @@ const templateProject = ({
   const currDirGenerator = getCodeFromLines([
     `const generatorPath = './${singleQuoteStringify(path.join(relativePath, 'index.js').replace(/\\/gmi, '/'), false)}';`,
     `const generator = require('${(level === 0 ? './' : repeat('../', level))}generator');`,
-    `const generators = [`,
-    map(generatorsPaths, (generatorPath, i) => (
-      `  ${singleQuoteStringify(generatorPath.replace(/\\/gmi, '/'))}${i !== generatorsPaths.length - 1 ? ',' : ''}`
-    )),
+    `const filesGenerators = [`,
+    codeTransform(generatorsPaths.slice(0, generatorsPathsDirFirstIndex), (generatorPath) => (
+      `  ${singleQuoteStringify(generatorPath.replace(/\\/gmi, '/'))}`
+    ), ','),
     `];`,
+    `const directoriesGenerators = [`,
+    codeTransform(generatorsPaths.slice(generatorsPathsDirFirstIndex), (generatorPath) => (
+      `  ${singleQuoteStringify(generatorPath.replace(/\\/gmi, '/'))}`
+    ), ','),
+    `];`,
+    `const generators = [...filesGenerators, ...directoriesGenerators];`,
     `exports.getGenerators = () => [...generators];`,
     `/**`,
     ` * @param {Object} generateOptions object sent to all generators to configure the generation process (your job is to add props to it to configure the generator)`,
@@ -195,10 +201,10 @@ const templateProject = ({
     `    generatorOptions.generateRootFiles ? (`,
     `      generatorOptions.generateSubDirectories ?`,
     `        generators`,
-    `        : generators.slice(0, ${generatorsPathsDirFirstIndex})`,
+    `        : filesGenerators`,
     `    ) : (`,
     `      generatorOptions.generateSubDirectories ?`,
-    `        generators.slice(${generatorsPathsDirFirstIndex})`,
+    `        directoriesGenerators`,
     `        : null`,
     `    )`,
     `  );`,
