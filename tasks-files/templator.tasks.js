@@ -1,9 +1,10 @@
 const fs = require('fs-extra');
 const path = require('path');
-const { map, filter, repeat, trimStart } = require('lodash');
+const { map, filter, repeat, trimStart, endsWith } = require('lodash');
 const { isBinaryFileSync } = require('isbinaryfile');
-const { cmdOptions, backTickStringify, getCodeFromLines, getDirectoriesNames, getFilesNames, getAndRemoveOption, singleQuoteStringify, codeTransform } = require( '../utils' );
-const { generateProject } = require( './generator.tasks' );
+const { cmdOptions, backTickStringify, getCodeFromLines, getDirectoriesNames, getFilesNames, getAndRemoveOption, singleQuoteStringify, codeTransform } = require('../utils');
+const { generateProject } = require('./generator.tasks');
+const { default: ignore } = require('ignore');
 
 const codifyFile = ({
   relativePath,
@@ -97,12 +98,9 @@ const templateProject = ({
   inputPath,
   outputPath,
   level = 0,
-  dirFilterFunc = (dirPath, level) => {
+  ignoreFunc = (dirPath) => {
     const name = path.basename(dirPath);
-    return level !== 0 || (name !== 'node_modules' && name !== 'build' && name !== 'builds');
-  },
-  fileFilterFunc = (filePath, level) => {
-    return true;
+    return name !== 'node_modules' && name !== 'build' && name !== 'builds' && name !== 'dist' && name !== 'test';
   },
   relativePath = './',
   binaryFilesAbsolutePath,
@@ -123,7 +121,7 @@ const templateProject = ({
   const dirs = map(
     filter(
       getDirectoriesNames(inputPath),
-      (name) => dirFilterFunc(path.join(inputPath, name), level)
+      (name) => ignoreFunc(path.join(relativePath, name))
     ),
     (name) => path.join(inputPath, name)
   );
@@ -131,7 +129,7 @@ const templateProject = ({
   const filesPaths = map(
     filter(
       getFilesNames(inputPath),
-      (name) => fileFilterFunc(path.join(inputPath, name), level)
+      (name) => ignoreFunc(path.join(relativePath, name))
     ),
     (name) => path.join(inputPath, name)
   );
@@ -163,8 +161,7 @@ const templateProject = ({
       inputPath: dirs[i],
       outputPath: convertInToOut(dirs[i]),
       level: level + 1,
-      dirFilterFunc,
-      fileFilterFunc,
+      ignoreFunc,
       relativePath: './' + path.join(relativePath, path.parse(dirs[i]).name),
       binaryFilesAbsolutePath,
       binaryFilesRelativePath,
@@ -244,6 +241,7 @@ exports.templateProject = async () => {
     console.log(` [--o <output_path>]. Where <output_path> is the path you want to put the generated project generator in. Default "./templator-generator-projects/template-generators/<name_of_input_folder>. Aliases(1): --out --output --outFolderPath --outputFolderPath --outDirectoryPath --outputDirectoryPath --outDirPath --outputDirPath`);
     console.log(`     output path can be first positional argument too \`template-project --i <path_to_project_to_template> <output_path>\``);
     console.log(`     output path can be second positional argument too \`template-project <path_to_project_to_template> <output_path>\``);
+    console.log(` [--ignore <path_to_ignore_file>]. Where <path_to_ignore_file> is the absolute or relative path to the a .gitignore style file to use to ignore files/directories from the templating process. currently there is one preset for react use it as follows: \`--ignore react\`. defaults to .gitignore inside input project, then ./templator.ignore then templator.ignore in input project finally if none are found it will ignore all nod_modules. Aliases(1): --ig --ignoreFile --ignoreFilePath --i(in case --i is not used for the input project to template)`);
     console.log(``);
     console.log(`(1) Aliases also work if you use them in kebab-case instead of camelCase.`);
     return;
@@ -283,9 +281,53 @@ exports.templateProject = async () => {
 
   const outputPath = path.resolve(getAndRemoveOption(cmdOptions, 0, 'o', 'out', 'output', 'outputPath', 'outFolderPath', 'outputFolderPath', 'outDirectoryPath', 'outputDirectoryPath', 'outputDir', 'outDirPath', 'outputDirPath') || path.join('./templator-generator-projects', cmdOptions.dev ? 'generated-templates' : 'template-generators', path.basename(inputPath)));
 
+  let ignoreFilePath = getAndRemoveOption(cmdOptions, 'ignore', 'ig', 'ignoreFile', 'ignoreFilePath', 'i');
+
+  if(ignoreFilePath && path.isAbsolute(ignoreFilePath)) {
+    if(!fs.existsSync(ignoreFilePath)) {
+      throw new Error(`Could not find ignore file at "${ignoreFilePath}". File does not exist!`);
+    }
+  }
+  else {
+    const possiblePaths = [];
+    if(ignoreFilePath) {
+      possiblePaths.push(
+        path.resolve(ignoreFilePath),
+        path.resolve(path.join(inputPath, ignoreFilePath)),
+        endsWith(ignoreFilePath, '.ignore') ?
+          path.resolve(path.join(__dirname, '../ignores', ignoreFilePath)) :
+          path.resolve(path.join(__dirname, '../ignores', ignoreFilePath + '.ignore'))
+      );
+    }
+    else {
+      possiblePaths.push(
+        path.resolve(path.join(inputPath, '.gitignore')),
+        path.resolve('./templator.ignore'),
+        path.resolve(path.join(inputPath, 'templator.ignore')),
+        path.resolve(path.join(__dirname, '../ignores/default.ignore'))
+      );
+    }
+
+    let foundIgnore;
+    for(let i = 0; i < possiblePaths.length; i++) {
+      if(fs.existsSync(possiblePaths[i])) {
+        foundIgnore = possiblePaths[i];
+        break;
+      }
+    }
+    if(!foundIgnore) {
+      throw new Error(`Could not resolve ignore file path "${ignoreFilePath}". tried "${possiblePaths.join('", "')}" none exist!`);
+    }
+    ignoreFilePath = foundIgnore;
+    console.log(`Using ignore file "${ignoreFilePath}"`);
+  }
+
+  const ignoreFunc = ignore().add(fs.readFileSync(ignoreFilePath, { encoding: 'utf8' })).createFilter();
+
   const { generatorsPaths } = templateProject({
     inputPath,
-    outputPath
+    outputPath,
+    ignoreFunc
   });
 
   await generateProject({ projectName: path.basename(inputPath), ...cmdOptions, generatorPath: path.join(__dirname, '../templator-generator-projects/template-generators/base-generator'), outputPath, generatorsPaths });
