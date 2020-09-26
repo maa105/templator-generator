@@ -189,7 +189,7 @@ Let us take out greeting generator from above:
     const codeLines = [
       `const entity = singleQuoteStringify(greetingEntity);`,
       `console.log('${singleQuoteEscape(greetingName.toUpperCase())}, ' + entity +'!');`
-      `console.log(\`${backTickEscape(greetingName.toUpperCase())}, ${entity}!\`);`
+      `console.log(\`${backTickEscape(greetingName.toUpperCase())}, \${entity}!\`);`
     ];
     return generatorOptions.addFilePath ? { [fileName]: codeLines } : codeLines;
   };
