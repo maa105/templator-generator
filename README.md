@@ -60,8 +60,11 @@ For more info on this command and aliases you can use run `template-project --h`
 Runs generator at <generator_path> which will generate a project and put this output project in <output_path>.
 
 As mentioned above in `template-project` documentation the idea of templating a project is you make it paramertizable/configurable. You can pass your paramertization/configuration options to the generator through this command in multiple ways:
+
 1- Through a JSON file using the `--jsonOptionsPath <json_options_file_path>` option
+
 2- Through piping in to this command a valid JSON string representing the paramertization/configuration options
+
 3- Through normal cli options `--<option_key> <option_value>`
 
 You can specify an output path for the generator in <output_generator_path> but by default it will put the generator in `./templator-generator-projects/template-generators/<project_name>` (<project_name> is the last path segment in <input_project_path>).
@@ -169,3 +172,36 @@ Say you have an array of table columns and want to generate a create table MySQL
 
 The above snippet from the `file-generator` the `codeTransform` will pass each column to the map function which returns null for columns with `skip=true` and the sql syntax for creating that column otherwise. It will then remove null entries append commas to end of all lines except the last line and finally indent all the lines by 2 spaces. VERY HANDY if you ask me.
 
+#### `doubleQuoteStringify(str)`, `singleQuoteStringify(str)`, `backTickStringify(str)`
+
+These three functions given a string will escape the string and enclose it with `"` or `'` or `` ` `` respectively
+
+If you do not want to enclose the strings just escape use `doubleQuoteEscape(str)`, `singleQuoteEscape(str)`, `backTickEscape(str)`
+
+##### Use case:
+
+Let us take out greeting generator from above:
+
+```js
+  const generateFilesEntries = ({ greetingName = 'hello', greetingEntity = 'world' }, generatorOptions = {}) => {
+    const fileName = `${greetingName}.js`;
+
+    const codeLines = [
+      `const entity = singleQuoteStringify(greetingEntity);`,
+      `console.log('${singleQuoteEscape(greetingName.toUpperCase())}, ' + entity +'!');`
+      `console.log(\`${backTickStringify(greetingName.toUpperCase())}, ${entity}!\`);`
+    ];
+    return generatorOptions.addFilePath ? { [fileName]: codeLines } : codeLines;
+  };
+  exports.generateFilesEntries = generateFilesEntries;
+```
+
+say we call this generator with `` greetingName = Hi\Hello`s `` and `` greetingEntity = o'clock ``
+
+We will get:
+
+```js
+  const entity = 'o\'clock';
+  console.log('Hi\\Hello`s, ' + entity +'!');
+  console.log(`Hi\\Hello\`s, ${entity}!`)
+```
