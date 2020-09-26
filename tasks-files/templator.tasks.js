@@ -2,7 +2,7 @@ const fs = require('fs-extra');
 const path = require('path');
 const { map, filter, repeat, trimStart, endsWith } = require('lodash');
 const { isBinaryFileSync } = require('isbinaryfile');
-const { cmdOptions, backTickStringify, getCodeFromLines, getDirectoriesNames, getFilesNames, getAndRemoveOption, singleQuoteStringify, codeTransform } = require('../utils');
+const { cmdOptions, backTickStringify, getCodeFromLines, getDirectoriesNames, getFilesNames, getAndRemoveOption, singleQuoteStringify, codeTransform, singleQuoteStrEscape } = require('../utils');
 const { generateProject } = require('./generator.tasks');
 const { default: ignore } = require('ignore');
 
@@ -22,8 +22,8 @@ const codifyFile = ({
       fs.ensureDirSync(binaryFilesAbsolutePath);
       fs.copyFileSync(inputFilePath, path.join(binaryFilesAbsolutePath, fileIndex.toString()));
       fs.writeFileSync(outputFilePath, getCodeFromLines([
-        `const generatorPath = './${singleQuoteStringify(path.join(relativePath, path.basename(outputFilePath)).replace(/\\/gmi, '/'), false)}';`,
-        `const srcBinaryPath = './${singleQuoteStringify(path.join(binaryFilesRelativePath, fileIndex.toString()).replace(/\\/gmi, '/'), false)}';`,
+        `const generatorPath = './${singleQuoteStrEscape(path.join(relativePath, path.basename(outputFilePath)).replace(/\\/gmi, '/'))}';`,
+        `const srcBinaryPath = './${singleQuoteStrEscape(path.join(binaryFilesRelativePath, fileIndex.toString()).replace(/\\/gmi, '/'))}';`,
         `/**`,
         ` * @param {Object} generateOptions object sent to all generators to configure the generation process (your job is to add props to it to configure the generator)`,
         ` * @param {import('${(level === 0 ? './' : repeat('../', level))}generator.js').FileGeneratorOptions} generatorOptions`,
@@ -61,7 +61,7 @@ const codifyFile = ({
   const lines = fileContent.split('\r\n');
 
   fs.writeFileSync(outputFilePath, getCodeFromLines([
-    `const generatorPath = './${singleQuoteStringify(path.join(relativePath, path.basename(outputFilePath)).replace(/\\/gmi, '/'), false)}';`,
+    `const generatorPath = './${singleQuoteStrEscape(path.join(relativePath, path.basename(outputFilePath)).replace(/\\/gmi, '/'))}';`,
     `const generator = require('${(level === 0 ? './' : repeat('../', level))}generator');`,
     `/**`,
     ` * @param {Object} generateOptions object sent to all generators to configure the generation process (your job is to add props to it to configure the generator)`,
@@ -72,9 +72,7 @@ const codifyFile = ({
     `  const filePath = ${backTickStringify('/' + path.join(relativePath, path.basename(inputFilePath)).replace(/\\/gmi, '/'))};`,
     ``,
     `  const codeLines = [`,
-    codeTransform(lines, (line) => (
-      `    ${backTickStringify(line)}`
-    ), ','),
+    codeTransform(lines, backTickStringify, ',', 4),
     `  ];`,
     `  return generatorOptions.addFilePath ? { [fileName]: codeLines } : codeLines; // you can return multiple files or an entire folder structure if you'd like, you can also use absolute paths by starting the key with slash(/) or tilda backslash(~/)`,
     `};`,
@@ -167,21 +165,21 @@ const templateProject = ({
       binaryFilesRelativePath,
       fileIndex
     });
-    generatorsPaths.push('./' + path.join(relativePath, path.parse(dirs[i]).name));
+    generatorsPaths.push('./' + path.join(relativePath, path.parse(dirs[i]).name, 'index.js'));
   }
 
   const currDirGenerator = getCodeFromLines([
-    `const generatorPath = './${singleQuoteStringify(path.join(relativePath, 'index.js').replace(/\\/gmi, '/'), false)}';`,
+    `const generatorPath = './${singleQuoteStrEscape(path.join(relativePath, 'index.js').replace(/\\/gmi, '/'))}';`,
     `const generator = require('${(level === 0 ? './' : repeat('../', level))}generator');`,
     `const filesGenerators = [`,
     codeTransform(generatorsPaths.slice(0, generatorsPathsDirFirstIndex), (generatorPath) => (
-      `  ${singleQuoteStringify(generatorPath.replace(/\\/gmi, '/'))}`
-    ), ','),
+      singleQuoteStringify(generatorPath.replace(/\\/gmi, '/'))
+    ), ',', 2),
     `];`,
     `const directoriesGenerators = [`,
     codeTransform(generatorsPaths.slice(generatorsPathsDirFirstIndex), (generatorPath) => (
-      `  ${singleQuoteStringify(generatorPath.replace(/\\/gmi, '/'))}`
-    ), ','),
+      singleQuoteStringify(generatorPath.replace(/\\/gmi, '/'))
+    ), ',', 2),
     `];`,
     `const generators = [...filesGenerators, ...directoriesGenerators];`,
     `exports.getGenerators = () => [...generators];`,
@@ -241,7 +239,7 @@ exports.templateProject = async () => {
     console.log(` [--o <output_path>]. Where <output_path> is the path you want to put the generated project generator in. Default "./templator-generator-projects/template-generators/<name_of_input_folder>. Aliases(1): --out --output --outFolderPath --outputFolderPath --outDirectoryPath --outputDirectoryPath --outDirPath --outputDirPath`);
     console.log(`     output path can be first positional argument too \`template-project --i <path_to_project_to_template> <output_path>\``);
     console.log(`     output path can be second positional argument too \`template-project <path_to_project_to_template> <output_path>\``);
-    console.log(` [--ignore <path_to_ignore_file>]. Where <path_to_ignore_file> is the absolute or relative path to the a .gitignore style file to use to ignore files/directories from the templating process. currently there is one preset for react use it as follows: \`--ignore react\`. defaults to .gitignore inside input project, then ./templator.ignore then templator.ignore in input project finally if none are found it will ignore all nod_modules. Aliases(1): --ig --ignoreFile --ignoreFilePath --i(in case --i is not used for the input project to template)`);
+    console.log(` [--ignore <path_to_ignore_file>]. Where <path_to_ignore_file> is the absolute or relative path to the a .gitignore style file to use to ignore files/directories from the templating process. Currently there is one preset for react use it as follows: \`--ignore react\`. defaults to .gitignore inside input project, then ./templator.ignore then templator.ignore in input project finally if none are found it will ignore all nod_modules. Aliases(1): --ig --ignoreFile --ignoreFilePath --i(in case --i is not used for the input project to template)`);
     console.log(``);
     console.log(`(1) Aliases also work if you use them in kebab-case instead of camelCase.`);
     return;

@@ -1,6 +1,6 @@
 const fs = require('fs-extra');
 const path = require('path');
-const { mapValues, mapKeys, isArray, isString, isPlainObject, assign } = require('lodash');
+const { mapValues, mapKeys, isArray, isString, isPlainObject, assign, endsWith } = require('lodash');
 const { cmdOptions, getAndRemoveOption, getCodeFromLines, ifNull } = require( './utils' );
 
 /**
@@ -121,8 +121,13 @@ const getGeneratorFilesEntries = async ({
   generatorOptions
 }) => {
   if(!fs.existsSync(path.join(__dirname, generatorPath))) {
-    console.warn(`WARN: Could not find generator file "${generatorPath}". Skipping it. This means the file(s) it generates will not be in the output.`);
-    return null;
+    if(!endsWith(generatorPath.toLowerCase(), '.js') && fs.existsSync(path.join(__dirname, generatorPath + '.js'))) {
+      generatorPath += '.js';
+    }
+    else {
+      console.warn(`WARN: Could not find generator file "${generatorPath}". Skipping it. This means the file(s) it generates will not be in the output.`);
+      return null;
+    }
   }
   const filesEntries = await require('./' + generatorPath).generateFilesEntries(generateOptions, { ...generatorOptions, addFilePath: true, addDirectoryPath: true, generateSubDirectories: true, generateRootFiles: true });
   if(filesEntries == null) {
@@ -271,7 +276,7 @@ exports.writeFilesEntries = (outputPath, filesEntries, generatorOptions, generat
  */
 exports.generateFilesEntries = async (generatorsPaths, generateOptions, generatorOptions = {}) => {
   if(!generatorsPaths) {
-    generatorsPaths = require('./index').getGenerators();
+    generatorsPaths = ['./index.js'];
   }
 
   if(!generateOptions) {
@@ -297,7 +302,7 @@ exports.generateFilesEntries = async (generatorsPaths, generateOptions, generato
  */
 exports.generate = async (generatorsPaths, outputPath, generateOptions, generatorOptions = {}) => {
   if(!generatorsPaths) {
-    generatorsPaths = require('./index').getGenerators();
+    generatorsPaths = ['./index.js'];
   }
 
   if(!outputPath) {

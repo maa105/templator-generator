@@ -6,7 +6,7 @@ const filesGenerators = [
   './utils.template.js'
 ];
 const directoriesGenerators = [
-  './.bin'
+  './.bin/index.js'
 ];
 const generators = [...filesGenerators, ...directoriesGenerators];
 exports.getGenerators = () => [...generators];

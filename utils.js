@@ -1,6 +1,6 @@
 const fs = require('fs-extra');
 const path = require('path');
-const { camelCase, kebabCase, trim, map, flattenDeep, filter, trimEnd, assign, omit, isPlainObject, isArray, isString, isFunction, isNumber } = require( 'lodash' );
+const { camelCase, kebabCase, trim, map, flattenDeep, filter, trimEnd, assign, omit, isPlainObject, isArray, isString, isFunction, isNumber, repeat } = require( 'lodash' );
 const { spawn } = require( 'child_process' );
 
 const cmdOptions = require('minimist')(((args) => {
@@ -8,31 +8,31 @@ const cmdOptions = require('minimist')(((args) => {
 })(process.argv));
 exports.cmdOptions = cmdOptions;
 
-const doubleQuoteStringify = (str, encloseWithDoubleQuote = true) => {
+const doubleQuoteStr = (str, encloseWithDoubleQuote = true) => {
   const stringified = JSON.stringify(str);
   return encloseWithDoubleQuote ? stringified : stringified.substr(1, stringified.length - 2);
 };
-exports.doubleQuoteStringify = doubleQuoteStringify;
+exports.doubleQuoteStringify = (str) => doubleQuoteStr(str, true);
 
-const doubleQuoteStrEscape = (str) => doubleQuoteStringify(str, false);
+const doubleQuoteStrEscape = (str) => doubleQuoteStr(str, false);
 exports.doubleQuoteStrEscape = doubleQuoteStrEscape;
 
-const singleQuoteStringify = (str, encloseWithSingleQuote = true) => {
+const singleQuoteStr = (str, encloseWithSingleQuote = true) => {
   const stringified = JSON.stringify(str);
   return (encloseWithSingleQuote ? '\'' : '') + stringified.substr(1, stringified.length - 2).replace(/\\"/gmi, '"').replace(/'/gmi, '\\\'') + (encloseWithSingleQuote ? '\'' : '');
 };
-exports.singleQuoteStringify = singleQuoteStringify;
+exports.singleQuoteStringify = (str) => singleQuoteStr(str, true);
 
-const singleQuoteStrEscape = (str) => singleQuoteStringify(str, false);
+const singleQuoteStrEscape = (str) => singleQuoteStr(str, false);
 exports.singleQuoteStrEscape = singleQuoteStrEscape;
 
-const backTickStringify = (str, encloseWithBackTick = true) => {
+const backTickStr = (str, encloseWithBackTick = true) => {
   const stringified = JSON.stringify(str);
   return (encloseWithBackTick ? '`' : '') + stringified.substr(1, stringified.length - 2).replace(/\\"/gmi, '"').replace(/`/gmi, '\\`').replace(/\${/gmi,'\\${') + (encloseWithBackTick ? '`' : '');
 };
-exports.backTickStringify = backTickStringify;
+exports.backTickStringify = (str) => backTickStr(str, true);
 
-const backTickStrEscape = (str) => backTickStringify(str, false);
+const backTickStrEscape = (str) => backTickStr(str, false);
 exports.backTickStrEscape = backTickStrEscape;
 
 const capitalizeFirstLetter = (str) => (str.substr(0, 1).toUpperCase() + str.substr(1));
@@ -100,8 +100,8 @@ exports.indent = indent;
  * @typedef {Object} CodeTransformConfig
  * @property {function | string} [mapFunc] - The function to call for all collections items (The idea is this function takes a collection item and returns a code line)
  * @property {boolean} [trimEnd] - (Default true) trims the end of the code line
- * @property {string} [startAppend] - append this string/character to the begining of all lines
- * @property {string} [endAppend] - append this string/character to the end of all lines INCLUDING the last line
+ * @property {string} [prefix] - append this string/character to the begining of all lines
+ * @property {string} [suffix] - append this string/character to the end of all lines INCLUDING the last line
  * @property {string} [seperator] - append this string/character to the end of all lines EXCEPT the last line
  * @property {number} [indentCount] - (Default 0 i.e. no indent) the number of indent chars to add to the start of the code lines
  * @property {string} [indentChar] - (Default space) the indent char to use like space(' ') or tab ('\t')
@@ -112,14 +112,14 @@ const defaultCodeTransformConfig = {
   mapFunc: undefined,
   trimEnd: true,
   seperator: null,
-  startAppend: undefined,
-  endAppend: undefined,
+  prefix: undefined,
+  suffix: undefined,
   indentCount: 0,
   indentChar: undefined
 };
 
 /**
- * Deep flattens input array(s) then passes them in the following pipeling: map(using mapFunc), filter(removes null/undefined), trimEnd, endAppend, startAppend, seperate(using seperator), indent.
+ * Deep flattens input array(s) then passes them in the following pipeling: map(using mapFunc), filter(removes null/undefined), trimEnd, prefix, suffix, seperate(using seperator), indent.
  * Stages in pipeline can be configured by adding a CodeTransformConfig object for all settings, or a string for seperator, or a function for a mapFunction, or a number of indentCount
  * @param  {...Array<string | object> | CodeTransformConfig | string | number | Function} linesOrCollectionsOrConfig if last lines entry is an object it is considered a CodeTransformConfig object
  */
@@ -158,14 +158,14 @@ const codeTransform = (...linesOrCollectionsOrConfig) => {
   const trimTheEnd = (config.trim || config.trimEnd || config.trimRight);
   const trimmed = trimTheEnd ? map(filtered, trimEnd) : filtered;
 
-  const endAppend = (config.endAppend || config.endAppendChar || config.endAppendCharacter || config.endAppendStr || config.endAppendString);
-  const endAppended = endAppend ? map(trimmed, (line) => line + endAppend) : trimmed;
-
-  const startAppend = (config.startAppend || config.startAppendChar || config.startAppendCharacter || config.startAppendStr || config.startAppendString);
-  const startAppended = startAppend ? map(endAppended, (line) => startAppend + line) : endAppended;
+  const prefix = (config.prefix || config.pre || config.startAppend || config.startAppendChar || config.startAppendCharacter || config.startAppendStr || config.startAppendString);
+  const prefixed = prefix ? map(trimmed, (line) => prefix + line) : trimmed;
+  
+  const suffix = (config.suffix || config.suf || config.endAppend || config.endAppendChar || config.endAppendCharacter || config.endAppendStr || config.endAppendString);
+  const suffixed = suffix ? map(prefixed, (line) => line + suffix) : prefixed;
 
   const seperator = (config.sep || config.seperator);
-  const seperated = seperator ? map(startAppended, (line, i, lines) => line + (i === lines.length - 1 ? '' : seperator)) : startAppended;
+  const seperated = seperator ? map(suffixed, (line, i, lines) => line + (i === lines.length - 1 ? '' : seperator)) : suffixed;
   
   const indentCnt = (config.indent || config.indentCount || config.indentCnt);
   const indentChar = (config.indentChar || config.indentCharacter || config.indentStr || config.indentString);

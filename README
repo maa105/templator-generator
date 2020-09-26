@@ -1,9 +1,0 @@
-Documentation comming soon
-
-For the time being run:
-
-```js
-  npx templator-generator folder_name
-```
-
-And the cli will give you guidance
