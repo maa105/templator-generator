@@ -4,15 +4,15 @@ const utils = require('./utils.js');
 
 const level = 0;
 const pathToRoot = './';
-const generatorPath = '/package.json.template.js';
+const generatorPath = '/greet.template.js';
 
 /**
  * @param {Object} generateOptions user parameters/options for the generation process. It is an object sent to all generators to configure the generation process (your job is to add props to it to configure the generator)
  * @param {import('./generator.js').FileGeneratorOptions} generatorOptions
  */
 const getConfig = (generateOptions, generatorOptions = {}) => {
-  const fileName = `package.json`; // you can customise the output file name or path(put '../some_path/filename' or 'some_path/filename' or './some_path/filename' or even absolute path [using '/some_path/filename' or '~/some_path/filename'])
-  const filePath = `/package.json`;
+  const fileName = `greet.js`; // you can customise the output file name or path(put '../some_path/filename' or 'some_path/filename' or './some_path/filename' or even absolute path [using '/some_path/filename' or '~/some_path/filename'])
+  const filePath = `/greet.js`;
 
   const generatedLevel = generatorOptions.level != null ? generatorOptions.level : (level + (generatorOptions.extraLevel || 0));
   const generatedPathToRoot = generatedLevel === 0 ? './' : repeat('../', generatedLevel);
@@ -25,30 +25,10 @@ const getConfig = (generateOptions, generatorOptions = {}) => {
  * @param {import('./generator.js').FileGeneratorOptions} generatorOptions
  */
 const generateFilesEntries = (generateOptions, generatorOptions = {}) => {
-  const { projectName = 'project1', author = 'maa105' } = generateOptions;
   const { fileName, filePath, generatedLevel, generatedPathToRoot } = getConfig(generateOptions, generatorOptions);
 
   const codeLines = [ // you can use "generatedPathToRoot" here to generate code that is location dependent e.g. `require(generatedPathToRoot + 'utils.js')`
-    `{`,
-    `  "name": "${projectName}-generator",`,
-    `  "version": "1.0.0",`,
-    `  "description": "Project to generate ${projectName} project",`,
-    `  "main": "index.js",`,
-    `  "scripts": {`,
-    `    "generate": "node ./.bin/generate.js"`,
-    `  },`,
-    `  "author": "${author}",`,
-    `  "license": "MIT",`,
-    `  "dependencies": {`,
-    `    "fs-extra": "^9.0.1",`,
-    `    "lodash": "^4.17.20",`,
-    `    "minimist": "^1.2.5"`,
-    `  },`,
-    `  "bin": {`,
-    `    "generate-${projectName}": "./.bin/generate.js"`,
-    `  }`,
-    `}`,
-    ``
+    `exports.greet = (greeting = 'Hello', entity = 'world') => console.log(\`\${greeting}, \${entity}\`);`
   ];
   return generatorOptions.addFilePath ? { [fileName]: codeLines } : codeLines; // you can return multiple files or an entire folder structure if you'd like, you can also use absolute paths by starting the key with slash(/) or tilda backslash(~/)
 };

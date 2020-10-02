@@ -3,3 +3,7 @@ node_modules/
 templator-generator-projects/generated-templates/**
 templator-generator-projects/template-generators/base-generator1
 templator-generator-projects/template-generators/empty-templator-generator1
+templator-generator-projects/template-generators/base-generator2
+templator-generator-projects/template-generators/empty-templator-generator2
+templator-generator-projects/template-generators/base-generator3
+templator-generator-projects/template-generators/empty-templator-generator3

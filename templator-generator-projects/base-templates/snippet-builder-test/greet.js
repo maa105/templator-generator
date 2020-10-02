@@ -1,0 +1,1 @@
+exports.greet = (greeting = 'Hello', entity = 'world') => console.log(`${greeting}, ${entity}`);

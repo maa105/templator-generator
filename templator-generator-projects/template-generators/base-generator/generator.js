@@ -1,13 +1,15 @@
 const fs = require('fs-extra');
 const path = require('path');
 const { mapValues, mapKeys, isArray, isString, isPlainObject, assign, endsWith } = require('lodash');
-const { cmdOptions, getAndRemoveOption, getCodeFromLines, ifNull } = require( './utils' );
+const { cmdOptions, getAndRemoveOption, getCodeFromLines, ifNull, Snippet, SnippetsCompiler } = require( './utils' );
 
 /**
  * Base generator options. Seperate from user parameters
  * @typedef {Object} BaseGeneratorOptions
  * @property {string} [lineSeperator] - The end of line sequence. Defaults to CRLF (\r\n)
  * @property {boolean} [writeEmptyFiles] - If the file generator returned an empty string whether to write this file or not default to false i.e. will write the file
+ * @property {number} [level] - (Root files and directories have level 0, files and directories in the directories at the root have level 1, and so on...), level is usually auto computed, but by this option you can override the file/directory level being generate for whatever reason (dont set it if you do not know what you are doing). `level` has precedence over `extraLevel` below
+ * @property {number} [extraLevel] - this relates to same concept of level explained in prop `level` above. However this only offsets the auto generated level not completely replace it; so it is more useful. Its used for example if in the root directory you put a path to directory
  */
 /**
  * @typedef {Object} DirectoryGeneratorOptionsExtention
@@ -72,6 +74,14 @@ const writeFlattenedFilesEntries = ({ outputPath, filesEntries, generatorOptions
         srcPath: entryValue
       });
     }
+    else if(entryValue.compile) {
+      writeCodeFile({
+        outputPath,
+        fileRelativePath: filePath,
+        codeLines: entryValue.compile(),
+        generatorOptions
+      });
+    }
     else {
       console.warn(`WARN: Invalid data type (${Object.prototype.toString.call(filesEntries)}) for file entry ${filePath}. File entries should be an array representing code lines for code files, a string representing a path to a file for binary files or null/undefined to suppress generation. Skipping invalid entry.`);
     }
@@ -95,10 +105,33 @@ const flattenFilesEntries = ({
         : path.normalize(path.join(relativePath, entryPath))
     );
     if(isArray(entryValue)) {
-      cumulativeFileEntries[normalizedPath] = entryValue;
+      if(cumulativeFileEntries[normalizedPath]) {
+        if(isString(cumulativeFileEntries[normalizedPath])) {
+          throw new Error(`duplicate file entry "${normalizedPath}" of mixed type code and binary(${cumulativeFileEntries[normalizedPath]})`);
+        }
+        else {
+          cumulativeFileEntries[normalizedPath] = SnippetsCompiler.Merge(cumulativeFileEntries[normalizedPath], entryValue);
+        }
+      }
+      else {
+        cumulativeFileEntries[normalizedPath] = entryValue;
+      }
     }
     else if(isString(entryValue)) {
       cumulativeFileEntries[normalizedPath] = entryValue;
+    }
+    else if(entryValue instanceof SnippetsCompiler || entryValue instanceof Snippet) {
+      if(cumulativeFileEntries[normalizedPath]) {
+        if(isString(cumulativeFileEntries[normalizedPath])) {
+          throw new Error(`duplicate file entry "${normalizedPath}" of mixed type code snippet(s) and binary(${cumulativeFileEntries[normalizedPath]})`);
+        }
+        else {
+          cumulativeFileEntries[normalizedPath] = SnippetsCompiler.Merge(cumulativeFileEntries[normalizedPath], entryValue);
+        }
+      }
+      else {
+        cumulativeFileEntries[normalizedPath] = entryValue;
+      }
     }
     else if(isPlainObject(entryValue)) {
       flattenFilesEntries({
@@ -259,6 +292,18 @@ const defaultGeneratorOptions = {
   lineSeperator: '\r\n',
   writeEmptyFiles: true
 };
+
+const getRootRelativePath = (...absolutePaths) => {
+  const absolutePath = path.normalize(path.join(...absolutePaths));
+  if(!path.isAbsolute(absolutePath)) {
+    throw new Error(`absolutePaths(["${absolutePaths.join('","')}"]) given to getRootRelativePath do not join to become an absolute path ${absolutePath}`);
+  }
+  if(absolutePath.toLowerCase().indexOf(__dirname.toLowerCase()) === 0) {
+    return './' + absolutePath.substr(__dirname.length).replace(/\\/gmi, '/');
+  }
+  throw new Error(`absolutePaths(["${absolutePaths.join('","')}"]) given to getRootRelativePath do not join to become a sub of the root folder ${__dirname}`);
+};
+exports.getRootRelativePath = getRootRelativePath;
 
 exports.writeFilesEntries = (outputPath, filesEntries, generatorOptions, generatorPath = '[UnNamed]') => {
   const flattenedFilesEntries = flattenFilesEntries({ filesEntries, generatorPath });

@@ -1,24 +1,45 @@
-const generatorPath = './generator.template.js';
-const generator = require('./generator');
+const { repeat } = require('lodash');
+const baseGenerator = require('./generator.js');
+const utils = require('./utils.js');
+
+const level = 0;
+const pathToRoot = './';
+const generatorPath = '/generator.template.js';
+
 /**
- * @param {Object} generateOptions object sent to all generators to configure the generation process (your job is to add props to it to configure the generator)
+ * @param {Object} generateOptions user parameters/options for the generation process. It is an object sent to all generators to configure the generation process (your job is to add props to it to configure the generator)
  * @param {import('./generator.js').FileGeneratorOptions} generatorOptions
  */
-const generateFilesEntries = (generateOptions, generatorOptions = {}) => {
+const getConfig = (generateOptions, generatorOptions = {}) => {
   const fileName = `generator.js`; // you can customise the output file name or path(put '../some_path/filename' or 'some_path/filename' or './some_path/filename' or even absolute path [using '/some_path/filename' or '~/some_path/filename'])
   const filePath = `/generator.js`;
 
-  const codeLines = [
+  const generatedLevel = generatorOptions.level != null ? generatorOptions.level : (level + (generatorOptions.extraLevel || 0));
+  const generatedPathToRoot = generatedLevel === 0 ? './' : repeat('../', generatedLevel);
+
+  return { fileName, filePath, generatedLevel, generatedPathToRoot };
+};
+
+/**
+ * @param {Object} generateOptions user parameters/options for the generation process. It is an object sent to all generators to configure the generation process (your job is to add props to it to configure the generator)
+ * @param {import('./generator.js').FileGeneratorOptions} generatorOptions
+ */
+const generateFilesEntries = (generateOptions, generatorOptions = {}) => {
+  const { fileName, filePath, generatedLevel, generatedPathToRoot } = getConfig(generateOptions, generatorOptions);
+
+  const codeLines = [ // you can use "generatedPathToRoot" here to generate code that is location dependent e.g. `require(generatedPathToRoot + 'utils.js')`
     `const fs = require('fs-extra');`,
     `const path = require('path');`,
     `const { mapValues, mapKeys, isArray, isString, isPlainObject, assign, endsWith } = require('lodash');`,
-    `const { cmdOptions, getAndRemoveOption, getCodeFromLines, ifNull } = require( './utils' );`,
+    `const { cmdOptions, getAndRemoveOption, getCodeFromLines, ifNull, Snippet, SnippetsCompiler } = require( './utils' );`,
     ``,
     `/**`,
     ` * Base generator options. Seperate from user parameters`,
     ` * @typedef {Object} BaseGeneratorOptions`,
     ` * @property {string} [lineSeperator] - The end of line sequence. Defaults to CRLF (\\r\\n)`,
     ` * @property {boolean} [writeEmptyFiles] - If the file generator returned an empty string whether to write this file or not default to false i.e. will write the file`,
+    ` * @property {number} [level] - (Root files and directories have level 0, files and directories in the directories at the root have level 1, and so on...), level is usually auto computed, but by this option you can override the file/directory level being generate for whatever reason (dont set it if you do not know what you are doing). \`level\` has precedence over \`extraLevel\` below`,
+    ` * @property {number} [extraLevel] - this relates to same concept of level explained in prop \`level\` above. However this only offsets the auto generated level not completely replace it; so it is more useful. Its used for example if in the root directory you put a path to directory`,
     ` */`,
     `/**`,
     ` * @typedef {Object} DirectoryGeneratorOptionsExtention`,
@@ -83,6 +104,14 @@ const generateFilesEntries = (generateOptions, generatorOptions = {}) => {
     `        srcPath: entryValue`,
     `      });`,
     `    }`,
+    `    else if(entryValue.compile) {`,
+    `      writeCodeFile({`,
+    `        outputPath,`,
+    `        fileRelativePath: filePath,`,
+    `        codeLines: entryValue.compile(),`,
+    `        generatorOptions`,
+    `      });`,
+    `    }`,
     `    else {`,
     `      console.warn(\`WARN: Invalid data type (\${Object.prototype.toString.call(filesEntries)}) for file entry \${filePath}. File entries should be an array representing code lines for code files, a string representing a path to a file for binary files or null/undefined to suppress generation. Skipping invalid entry.\`);`,
     `    }`,
@@ -106,10 +135,33 @@ const generateFilesEntries = (generateOptions, generatorOptions = {}) => {
     `        : path.normalize(path.join(relativePath, entryPath))`,
     `    );`,
     `    if(isArray(entryValue)) {`,
-    `      cumulativeFileEntries[normalizedPath] = entryValue;`,
+    `      if(cumulativeFileEntries[normalizedPath]) {`,
+    `        if(isString(cumulativeFileEntries[normalizedPath])) {`,
+    `          throw new Error(\`duplicate file entry "\${normalizedPath}" of mixed type code and binary(\${cumulativeFileEntries[normalizedPath]})\`);`,
+    `        }`,
+    `        else {`,
+    `          cumulativeFileEntries[normalizedPath] = SnippetsCompiler.Merge(cumulativeFileEntries[normalizedPath], entryValue);`,
+    `        }`,
+    `      }`,
+    `      else {`,
+    `        cumulativeFileEntries[normalizedPath] = entryValue;`,
+    `      }`,
     `    }`,
     `    else if(isString(entryValue)) {`,
     `      cumulativeFileEntries[normalizedPath] = entryValue;`,
+    `    }`,
+    `    else if(entryValue instanceof SnippetsCompiler || entryValue instanceof Snippet) {`,
+    `      if(cumulativeFileEntries[normalizedPath]) {`,
+    `        if(isString(cumulativeFileEntries[normalizedPath])) {`,
+    `          throw new Error(\`duplicate file entry "\${normalizedPath}" of mixed type code snippet(s) and binary(\${cumulativeFileEntries[normalizedPath]})\`);`,
+    `        }`,
+    `        else {`,
+    `          cumulativeFileEntries[normalizedPath] = SnippetsCompiler.Merge(cumulativeFileEntries[normalizedPath], entryValue);`,
+    `        }`,
+    `      }`,
+    `      else {`,
+    `        cumulativeFileEntries[normalizedPath] = entryValue;`,
+    `      }`,
     `    }`,
     `    else if(isPlainObject(entryValue)) {`,
     `      flattenFilesEntries({`,
@@ -271,6 +323,18 @@ const generateFilesEntries = (generateOptions, generatorOptions = {}) => {
     `  writeEmptyFiles: true`,
     `};`,
     ``,
+    `const getRootRelativePath = (...absolutePaths) => {`,
+    `  const absolutePath = path.normalize(path.join(...absolutePaths));`,
+    `  if(!path.isAbsolute(absolutePath)) {`,
+    `    throw new Error(\`absolutePaths(["\${absolutePaths.join('","')}"]) given to getRootRelativePath do not join to become an absolute path \${absolutePath}\`);`,
+    `  }`,
+    `  if(absolutePath.toLowerCase().indexOf(__dirname.toLowerCase()) === 0) {`,
+    `    return './' + absolutePath.substr(__dirname.length).replace(/\\\\/gmi, '/');`,
+    `  }`,
+    `  throw new Error(\`absolutePaths(["\${absolutePaths.join('","')}"]) given to getRootRelativePath do not join to become a sub of the root folder \${__dirname}\`);`,
+    `};`,
+    `exports.getRootRelativePath = getRootRelativePath;`,
+    ``,
     `exports.writeFilesEntries = (outputPath, filesEntries, generatorOptions, generatorPath = '[UnNamed]') => {`,
     `  const flattenedFilesEntries = flattenFilesEntries({ filesEntries, generatorPath });`,
     `  return writeFlattenedFilesEntries({`,
@@ -346,10 +410,10 @@ exports.generateFilesEntries = generateFilesEntries;
 /**
  * @param {string} outputPath path to put the generated output in
  * @param {Object} generateOptions user parameters/options for the generation process. It is an object sent to all generators to configure the generation process (your job is to add props to it to configure the generator)
- * @param {import('./generator.js').FileGeneratorOptions} generatorOptions generator options
+ * @param {import('./generator.js').FileGeneratorOptions} generatorOptions
  */
 const generate = async (outputPath, generateOptions, generatorOptions = {}) => {
   const filesEntries = await generateFilesEntries(generateOptions, { ...generatorOptions, addFilePath: true });
-  return generator.writeFilesEntries(outputPath, filesEntries, generatorOptions, generatorPath);
+  return baseGenerator.writeFilesEntries(outputPath, filesEntries, generatorOptions, generatorPath);
 };
 exports.generate = generate;
