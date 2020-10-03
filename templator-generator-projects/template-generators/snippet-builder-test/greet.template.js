@@ -30,7 +30,10 @@ const generateFilesEntries = (generateOptions, generatorOptions = {}) => {
   const codeLines = [ // you can use "generatedPathToRoot" here to generate code that is location dependent e.g. `require(generatedPathToRoot + 'utils.js')`
     `exports.greet = (greeting = 'Hello', entity = 'world') => console.log(\`\${greeting}, \${entity}\`);`
   ];
-  return generatorOptions.addFilePath ? { [fileName]: codeLines } : codeLines; // you can return multiple files or an entire folder structure if you'd like, you can also use absolute paths by starting the key with slash(/) or tilda backslash(~/)
+
+  const extraGreetingSortOrder = null; // 0 -> first, -1 -> last, null/undefined -> depending on the order it is called
+  const extraGreeting = { 'index.js': new utils.Snippet({ key: 'greeting-humans', codeLines: [`greet('Greetings', 'humans'); // this line was written by a snippet from \`greet.template.js\` ;)`], sortOrder: extraGreetingSortOrder, includes: ['greet'] }) };
+  return generatorOptions.addFilePath ? { [fileName]: codeLines, ...extraGreeting } : codeLines; // you can return multiple files or an entire folder structure if you'd like, you can also use absolute paths by starting the key with slash(/) or tilda backslash(~/)
 };
 exports.generateFilesEntries = generateFilesEntries;
 

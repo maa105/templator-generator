@@ -219,7 +219,24 @@ const generateFilesEntries = (generateOptions, generatorOptions = {}) => {
     `      generateOptions,`,
     `      generatorOptions`,
     `    });`,
-    `    assign(filesEntries, currentFilesEntries);`,
+    `    for(let fileEntryKey in currentFilesEntries) {`,
+    `      const currFileEntry = currentFilesEntries[fileEntryKey];`,
+    `      const oldFileEntry = filesEntries[fileEntryKey];`,
+    `      if(!oldFileEntry) {`,
+    `        filesEntries[fileEntryKey] = currFileEntry;`,
+    `      }`,
+    `      else if(currFileEntry) {`,
+    `        const isCurrMergable = isArray(currFileEntry) || currFileEntry instanceof Snippet || currFileEntry instanceof SnippetsCompiler;`,
+    `        const isOldMergable = isArray(oldFileEntry) || oldFileEntry instanceof Snippet || oldFileEntry instanceof SnippetsCompiler;`,
+    `        if(isCurrMergable && isOldMergable) {`,
+    `          filesEntries[fileEntryKey] = SnippetsCompiler.Merge(oldFileEntry, currFileEntry);`,
+    `        }`,
+    `        else {`,
+    `          console.warn(\`file entry \${fileEntryKey} of type (\${Object.prototype.toString.call(oldFileEntry)}) being overwritten by new entry of type (\${Object.prototype.toString.call(currFileEntry)})\`);`,
+    `          filesEntries[fileEntryKey] = currFileEntry;`,
+    `        }`,
+    `      }`,
+    `    }`,
     `  }`,
     ``,
     `  return filesEntries;`,
@@ -400,8 +417,7 @@ const generateFilesEntries = (generateOptions, generatorOptions = {}) => {
     `  });`,
     `};`,
     ``,
-    `exports.defaultGeneratorOptions = defaultGeneratorOptions;`,
-    ``
+    `exports.defaultGeneratorOptions = defaultGeneratorOptions;`
   ];
   return generatorOptions.addFilePath ? { [fileName]: codeLines } : codeLines; // you can return multiple files or an entire folder structure if you'd like, you can also use absolute paths by starting the key with slash(/) or tilda backslash(~/)
 };

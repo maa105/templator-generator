@@ -43,11 +43,11 @@ function SnippetsCompiler({ name = 'anonymous', keyedIncludes = {} } = {}) {
     const { key, codeLines, sortOrder } = include;
     if(key != null) {
       if(!codeLines && !keyedIncludes[key]) {
-        throw new Error(`attempted to add include ${key} to sippet compiler ${name}, but the include source(codeLines) was not provided nor was this key found in the "keyedIncludes"`);
+        console.warn(`attempted to add include "${key}" to sippet compiler "${name}", but the include source(codeLines) was not provided nor was this key "${key}" found in the "keyedIncludes". This might be ok if later this snippet is merged/included/appended to a Snippet/SnippetCompiler that have include "${key}" defined`);
       }
       if(codeLines) {
         if(keyedIncludes[key] && getCodeFromLines(includes) !== getCodeFromLines(keyedIncludes[key])) {
-          console.warn(`snippet compiler "${name}" include ${key} is being overwritten`);
+          console.warn(`snippet compiler "${name}" include "${key}" is being overwritten`);
         }
         keyedIncludes[key] = codeLines;
       }
@@ -60,7 +60,7 @@ function SnippetsCompiler({ name = 'anonymous', keyedIncludes = {} } = {}) {
     }
     else {
       if(!codeLines) {
-        throw new Error(`attempted to add an anonymous include to sippet compiler ${name}, but no include source(codeLines) was not provided`);
+        throw new Error(`attempted to add an anonymous include to sippet compiler "${name}", but no include source(codeLines) was not provided`);
       }
       
       const src = getCodeFromLines([codeLines]);
@@ -108,7 +108,7 @@ function SnippetsCompiler({ name = 'anonymous', keyedIncludes = {} } = {}) {
         }
         else {
           if(snippetsByKeys[key]) {
-            console.warn(`snippet compiler ${name} duplicate snippet "${key}" will override old snippet codeLines`);
+            console.warn(`snippet compiler "${name}" duplicate snippet "${key}" will override old snippet codeLines`);
           }
           const snip = { key, codeLines, sortOrder };
           snippetsByKeys[key] = snip;
@@ -156,6 +156,9 @@ function SnippetsCompiler({ name = 'anonymous', keyedIncludes = {} } = {}) {
     ]);
   };
 
+  this.toString = () => this.compile().join('\r\n');
+  this.toJSON = () => this.compile();
+
   return self;
 }
 exports.SnippetsCompiler = SnippetsCompiler;
@@ -193,7 +196,7 @@ function Snippet({ key, codeLines, sortOrder, includes, keyedIncludes }) {
   const self = this;
 
   const snip = new SnippetsCompiler({ name: key, keyedIncludes: keyedIncludes || {} });
-  snip.addSnippet({ key, codeLines, sortOrder });
+  snip.addSnippet({ key, codeLines, sortOrder, includes });
 
   const inner = snip[snippetInnerSymbol]
   this[snippetInnerSymbol] = inner;
@@ -201,24 +204,12 @@ function Snippet({ key, codeLines, sortOrder, includes, keyedIncludes }) {
   this.addInclude = snip.addInclude;
   this.addSnippet = snip.addSnippet;
   this.append = snip.append;
-  this.compile = snip.compile;
+  this.compile = snip.compile
+  this.toString = snip.toString;
+  this.toJSON = snip.toJSON;
   this.key = key;
   this.sortOrder = sortOrder;
 
-  includes = filter(flattenDeep([includes]), (inc) => inc != null);
-  for(let i = 0; i < includes.length; i++) {
-    const inc = includes[i];
-    if(isString(inc)) {
-      snip.addInclude({ key: inc });
-    }
-    else if(isArray(inc)) {
-      snip.addInclude({ codeLines: inc });
-    }
-    else {
-      snip.addInclude(includes[i]);
-    }
-  }
-  
   return self;
 }
 exports.Snippet = Snippet;
@@ -482,3 +473,5 @@ const execCmd = (cmd, cmdArgs = [], options = {}) => {
   return ret;
 };
 exports.execCmd = execCmd;
+
+exports.log = (...args) => console.log(...map(args, (arg) => JSON.parse(JSON.stringify(arg))));
