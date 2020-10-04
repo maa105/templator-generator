@@ -2,7 +2,7 @@ const path = require('path');
 const fs = require('fs-extra');
 const { repeat, filter, endsWith, map } = require('lodash');
 const baseGenerator = require('./generator.js');
-const { getFilesPaths, getDirectoriesPaths } = require('./utils.js');
+const { getFilesPaths, getDirectoriesPaths, getRootRelativePath } = require('./utils.js');
 
 const level = 0;
 const pathToRoot = './';
@@ -22,8 +22,8 @@ const getConfig = (generateOptions, generatorOptions = {}) => {
   return { directoryName, directoryPath, generatedLevel, generatedPathToRoot };
 };
 
-const getFilesGenerators = () => map(filter(getFilesPaths(__dirname), (path) => endsWith(path, '.template.js')), (path) => baseGenerator.getRootRelativePath(path));
-const getDirectoriesGenerators = () => map(filter(getDirectoriesPaths(__dirname), (dirPath) => fs.existsSync(path.join(dirPath, 'index.js'))), (dirPath) => baseGenerator.getRootRelativePath(path.join(dirPath, 'index.js')));
+const getFilesGenerators = () => map(filter(getFilesPaths(__dirname), (path) => endsWith(path, '.template.js')), (path) => getRootRelativePath(path));
+const getDirectoriesGenerators = () => map(filter(getDirectoriesPaths(__dirname), (dirPath) => fs.existsSync(path.join(dirPath, 'index.js'))), (dirPath) => getRootRelativePath(path.join(dirPath, 'index.js')));
 
 /**
  * @param {Object} generateOptions object sent to all generators to configure the generation process (your job is to add props to it to configure the generator)
