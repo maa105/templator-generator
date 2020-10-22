@@ -283,7 +283,8 @@ SnippetsCompiler.Merge = (snip1, snip2) => {
     return snip1;
   }
   if(snip2 instanceof SnippetsCompiler) {
-    snip2.clone().addSnippet(snip1);
+    snip2 = snip2.clone();
+    snip2.addSnippet(snip1);
     return snip2;
   }
   if(isArray(snip1)) {
@@ -305,7 +306,8 @@ SnippetsCompiler.Merge = (snip1, snip2) => {
     return snip1;
   }
   if(snip2 instanceof Snippet) {
-    snip2.clone().addSnippet(snip1);
+    snip2 = snip2.clone();
+    snip2.addSnippet(snip1);
     return snip2;
   }
   const ret = new SnippetsCompiler({});
