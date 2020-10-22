@@ -8,29 +8,18 @@ const level = 0;
 const pathToRoot = './';
 const generatorPath = './index.js';
 
-/**
- * @param {Object} generateOptions user parameters/options for the generation process. It is an object sent to all generators to configure the generation process (your job is to add props to it to configure the generator)
- * @param {import('./generator.js').FileGeneratorOptions} generatorOptions
- */
-const getConfig = (generateOptions, generatorOptions = {}) => {
-  const directoryName = ``; // you can customise the output directory name or path(put '../some_path/dir_name' or 'some_path/dir_name' or even absolute path [using '/some_path/dir_name' or '~/some_path/dir_name'])
-  const directoryPath = `/`;
-
-  const generatedLevel = generatorOptions.level != null ? generatorOptions.level : (level + (generatorOptions.extraLevel || 0));
-  const generatedPathToRoot = generatedLevel === 0 ? './' : repeat('../', generatedLevel);
-
-  return { directoryName, directoryPath, generatedLevel, generatedPathToRoot };
-};
-
 const getFilesGenerators = () => map(filter(getFilesPaths(__dirname), (path) => endsWith(path, '.template.js')), (path) => getRootRelativePath(path));
 const getDirectoriesGenerators = () => map(filter(getDirectoriesPaths(__dirname), (dirPath) => fs.existsSync(path.join(dirPath, 'index.js'))), (dirPath) => getRootRelativePath(path.join(dirPath, 'index.js')));
 
 /**
- * @param {Object} generateOptions object sent to all generators to configure the generation process (your job is to add props to it to configure the generator)
- * @param {import('./generator.js').DirectoryGeneratorOptions} generatorOptions
+ * @param {Object} generateOptions user parameters/options for the generation process. It is an object sent to all generators to configure the generation process (your job is to add props to it to configure the generator)
+ * @param {import('./generator.js').FileGeneratorOptions} generatorOptions
  */
 const generateFilesEntries = async (generateOptions, generatorOptions = baseGenerator.defaultGeneratorOptions) => {
-  const { directoryName, directoryPath, generatedLevel, generatedPathToRoot } = getConfig(generateOptions, generatorOptions);
+  const directoryName = ``; // you can customise the output directory name or path(put '../some_path/dir_name' or 'some_path/dir_name' or even absolute path [using '/some_path/dir_name' or '~/some_path/dir_name'])
+  const directoryPath = `/`;
+  const generatedLevel = generatorOptions.levelOverride != null ? generatorOptions.levelOverride : ((generatorOptions.baseLevel || 0) + level);
+  const generatedPathToRoot = generatedLevel === 0 ? './' : repeat('../', generatedLevel);
 
   generatorOptions = { ...baseGenerator.defaultGeneratorOptions, ...generatorOptions };
   const gens = (

@@ -10,27 +10,16 @@ const generatorPath = '/utils.template.js';
  * @param {Object} generateOptions user parameters/options for the generation process. It is an object sent to all generators to configure the generation process (your job is to add props to it to configure the generator)
  * @param {import('./generator.js').FileGeneratorOptions} generatorOptions
  */
-const getConfig = (generateOptions, generatorOptions = {}) => {
+const generateFilesEntries = (generateOptions, generatorOptions = {}) => {
   const fileName = `utils.js`; // you can customise the output file name or path(put '../some_path/filename' or 'some_path/filename' or './some_path/filename' or even absolute path [using '/some_path/filename' or '~/some_path/filename'])
   const filePath = `/utils.js`;
-
-  const generatedLevel = generatorOptions.level != null ? generatorOptions.level : (level + (generatorOptions.extraLevel || 0));
+  const generatedLevel = generatorOptions.levelOverride != null ? generatorOptions.levelOverride : ((generatorOptions.baseLevel || 0) + level);
   const generatedPathToRoot = generatedLevel === 0 ? './' : repeat('../', generatedLevel);
-
-  return { fileName, filePath, generatedLevel, generatedPathToRoot };
-};
-
-/**
- * @param {Object} generateOptions user parameters/options for the generation process. It is an object sent to all generators to configure the generation process (your job is to add props to it to configure the generator)
- * @param {import('./generator.js').FileGeneratorOptions} generatorOptions
- */
-const generateFilesEntries = (generateOptions, generatorOptions = {}) => {
-  const { fileName, filePath, generatedLevel, generatedPathToRoot } = getConfig(generateOptions, generatorOptions);
 
   const codeLines = [ // you can use "generatedPathToRoot" here to generate code that is location dependent e.g. `require(generatedPathToRoot + 'utils.js')`
     `const fs = require('fs-extra');`,
     `const path = require('path');`,
-    `const { camelCase, kebabCase, trim, map, flattenDeep, filter, trimEnd, assign, omit, isPlainObject, isArray, isString, isFunction, isNumber, repeat, orderBy, forEach, mapValues } = require('lodash');`,
+    `const { camelCase, kebabCase, trim, map, flattenDeep, filter, trimEnd, assign, omit, isPlainObject, isArray, isString, isFunction, isNumber, repeat, orderBy, forEach, mapValues, some } = require('lodash');`,
     `const { spawn } = require('child_process');`,
     ``,
     `const cmdOptions = require('minimist')(((args) => {`,
@@ -227,12 +216,14 @@ const generateFilesEntries = (generateOptions, generatorOptions = {}) => {
     `          snippets.push(snip);`,
     `        }`,
     `        else {`,
-    `          if(snippetsByKeys[key]) {`,
-    `            console.warn(\`snippet compiler "\${name}" duplicate snippet "\${key}" will override old snippet codeLines\`);`,
-    `          }`,
     `          const snip = { key, codeLines, sortOrder };`,
-    `          snippetsByKeys[key] = snip;`,
-    `          snippets.push(snip);`,
+    `          if(snippetsByKeys[key]) {`,
+    `            console.warn(\`snippet compiler "\${name}" duplicate snippet "\${key}" will ignore new snippet codeLines\`);`,
+    `          }`,
+    `          else {`,
+    `            snippets.push(snip);`,
+    `            snippetsByKeys[key] = snip;`,
+    `          }`,
     `        }`,
     `        forEach(filter(flattenDeep([includes]), (inc) => inc != null), this.addInclude);`,
     `      }`,
@@ -314,6 +305,20 @@ const generateFilesEntries = (generateOptions, generatorOptions = {}) => {
     `    snip2.clone().addSnippet(snip1);`,
     `    return snip2;`,
     `  }`,
+    `  if(isArray(snip1)) {`,
+    `    const ret = new SnippetsCompiler({});`,
+    `    ret.addSnippet(snip1);`,
+    `    if(!isArray(snip2) || snip1.length !== snip2.length || some(snip1, (line, i) => line !== snip2[i])) {`,
+    `      ret.addSnippet(snip2);`,
+    `    }`,
+    `    return ret;`,
+    `  }`,
+    `  if(isArray(snip2)) {`,
+    `    const ret = new SnippetsCompiler({});`,
+    `    ret.addSnippet(snip2);`,
+    `    ret.addSnippet(snip1);`,
+    `    return ret;`,
+    `  }`,
     `  if(snip1 instanceof Snippet) {`,
     `    snip1.addSnippet(snip2);`,
     `    return snip1;`,
@@ -322,7 +327,10 @@ const generateFilesEntries = (generateOptions, generatorOptions = {}) => {
     `    snip2.clone().addSnippet(snip1);`,
     `    return snip2;`,
     `  }`,
-    `  return new Snippet({ codeLines: codeTransform([snip1, '', snip2]) });`,
+    `  const ret = new SnippetsCompiler({});`,
+    `  ret.addSnippet(snip1);`,
+    `  ret.addSnippet(snip2);`,
+    `  return ret;`,
     `};`,
     ``,
     `/**`,
@@ -332,7 +340,9 @@ const generateFilesEntries = (generateOptions, generatorOptions = {}) => {
     `  const self = this;`,
     ``,
     `  const snip = new SnippetsCompiler({ name: key, keyedIncludes: keyedIncludes || {} });`,
-    `  snip.addSnippet({ key, codeLines, sortOrder, includes });`,
+    `  if(codeLines) {`,
+    `    snip.addSnippet({ key, codeLines, sortOrder, includes });`,
+    `  }`,
     ``,
     `  const inner = snip[snippetInnerSymbol]`,
     `  this[snippetInnerSymbol] = inner;`,
@@ -342,7 +352,7 @@ const generateFilesEntries = (generateOptions, generatorOptions = {}) => {
     `  this.clone = () => {`,
     `    const ret = new Snippet({ key, codeLines, sortOrder, keyedIncludes: { ...keyedIncludes } });`,
     `    forEach(inner.includes, ret.addInclude);`,
-    `    forEach(inner.snippets, ret.addSnippet);`,
+    `    forEach(codeLines ? inner.snippets.slice(1) : inner.snippets, ret.addSnippet);`,
     `    return ret;`,
     `  };`,
     `  this.append = snip.append;`,
@@ -355,6 +365,19 @@ const generateFilesEntries = (generateOptions, generatorOptions = {}) => {
     `  return self;`,
     `}`,
     `exports.Snippet = Snippet;`,
+    ``,
+    `Snippet.Merge = (snippetsEntries) => {`,
+    `  const coreSnippets = map(`,
+    `    snippetsEntries,`,
+    `    ({ codeLines, sortOrder, includes, keyedIncludes }, key) => new Snippet({ key, codeLines, sortOrder, includes, keyedIncludes })`,
+    `  );`,
+    `  forEach(coreSnippets, (snippet, i) => {`,
+    `    if(i) {`,
+    `      coreSnippets[0].addSnippet(snippet);`,
+    `    }`,
+    `  });`,
+    `  return coreSnippets[0];`,
+    `};`,
     ``,
     `const doubleQuoteStr = (str, encloseWithDoubleQuote = true) => {`,
     `  const stringified = JSON.stringify(str);`,
@@ -618,8 +641,8 @@ const generateFilesEntries = (generateOptions, generatorOptions = {}) => {
     `};`,
     `exports.execCmd = execCmd;`,
     ``,
-    `exports.log = (...args) => console.log(...map(args, (arg) => JSON.parse(JSON.stringify(arg))));`,
-    ``
+    `const log = (...args) => console.log(...map(args, (arg) => JSON.parse(JSON.stringify(arg))));`,
+    `exports.log = log;`
   ];
   return generatorOptions.addFilePath ? { [fileName]: codeLines } : codeLines; // you can return multiple files or an entire folder structure if you'd like, you can also use absolute paths by starting the key with slash(/) or tilda backslash(~/)
 };

@@ -1,6 +1,6 @@
 const fs = require('fs-extra');
 const path = require('path');
-const { camelCase, kebabCase, trim, map, flattenDeep, filter, trimEnd, assign, omit, isPlainObject, isArray, isString, isFunction, isNumber, repeat, orderBy, forEach, mapValues } = require('lodash');
+const { camelCase, kebabCase, trim, map, flattenDeep, filter, trimEnd, assign, omit, isPlainObject, isArray, isString, isFunction, isNumber, repeat, orderBy, forEach, mapValues, some } = require('lodash');
 const { spawn } = require('child_process');
 
 const cmdOptions = require('minimist')(((args) => {
@@ -73,7 +73,7 @@ exports.cloneFilesEntries = cloneFilesEntries;
 
 /**
  * Merges all filesEntries sent into the first filesEntries (mutates it)
- * @param  {...any} filesEntries
+ * @param  {...any} filesEntries 
  */
 const mergeFilesEntries = (...filesEntries) => {
   if(filesEntries.length < 2) {
@@ -92,7 +92,7 @@ exports.mergeFilesEntries = mergeFilesEntries;
 
 /**
  * same as mergeFilesEntries but it leaves the input fileEntries intact (no mutation)
- * @param  {...any} filesEntries
+ * @param  {...any} filesEntries 
  */
 const concatFilesEntries = (...filesEntries) => {
   return mergeFilesEntries(
@@ -197,12 +197,14 @@ function SnippetsCompiler({ name = 'anonymous', keyedIncludes = {} } = {}) {
           snippets.push(snip);
         }
         else {
-          if(snippetsByKeys[key]) {
-            console.warn(`snippet compiler "${name}" duplicate snippet "${key}" will override old snippet codeLines`);
-          }
           const snip = { key, codeLines, sortOrder };
-          snippetsByKeys[key] = snip;
-          snippets.push(snip);
+          if(snippetsByKeys[key]) {
+            console.warn(`snippet compiler "${name}" duplicate snippet "${key}" will ignore new snippet codeLines`);
+          }
+          else {
+            snippets.push(snip);
+            snippetsByKeys[key] = snip;
+          }
         }
         forEach(filter(flattenDeep([includes]), (inc) => inc != null), this.addInclude);
       }
@@ -284,6 +286,20 @@ SnippetsCompiler.Merge = (snip1, snip2) => {
     snip2.clone().addSnippet(snip1);
     return snip2;
   }
+  if(isArray(snip1)) {
+    const ret = new SnippetsCompiler({});
+    ret.addSnippet(snip1);
+    if(!isArray(snip2) || snip1.length !== snip2.length || some(snip1, (line, i) => line !== snip2[i])) {
+      ret.addSnippet(snip2);
+    }
+    return ret;
+  }
+  if(isArray(snip2)) {
+    const ret = new SnippetsCompiler({});
+    ret.addSnippet(snip2);
+    ret.addSnippet(snip1);
+    return ret;
+  }
   if(snip1 instanceof Snippet) {
     snip1.addSnippet(snip2);
     return snip1;
@@ -292,7 +308,10 @@ SnippetsCompiler.Merge = (snip1, snip2) => {
     snip2.clone().addSnippet(snip1);
     return snip2;
   }
-  return new Snippet({ codeLines: codeTransform([snip1, '', snip2]) });
+  const ret = new SnippetsCompiler({});
+  ret.addSnippet(snip1);
+  ret.addSnippet(snip2);
+  return ret;
 };
 
 /**
@@ -302,7 +321,9 @@ function Snippet({ key, codeLines, sortOrder, includes, keyedIncludes }) {
   const self = this;
 
   const snip = new SnippetsCompiler({ name: key, keyedIncludes: keyedIncludes || {} });
-  snip.addSnippet({ key, codeLines, sortOrder, includes });
+  if(codeLines) {
+    snip.addSnippet({ key, codeLines, sortOrder, includes });
+  }
 
   const inner = snip[snippetInnerSymbol]
   this[snippetInnerSymbol] = inner;
@@ -312,7 +333,7 @@ function Snippet({ key, codeLines, sortOrder, includes, keyedIncludes }) {
   this.clone = () => {
     const ret = new Snippet({ key, codeLines, sortOrder, keyedIncludes: { ...keyedIncludes } });
     forEach(inner.includes, ret.addInclude);
-    forEach(inner.snippets, ret.addSnippet);
+    forEach(codeLines ? inner.snippets.slice(1) : inner.snippets, ret.addSnippet);
     return ret;
   };
   this.append = snip.append;
@@ -325,6 +346,19 @@ function Snippet({ key, codeLines, sortOrder, includes, keyedIncludes }) {
   return self;
 }
 exports.Snippet = Snippet;
+
+Snippet.Merge = (snippetsEntries) => {
+  const coreSnippets = map(
+    snippetsEntries,
+    ({ codeLines, sortOrder, includes, keyedIncludes }, key) => new Snippet({ key, codeLines, sortOrder, includes, keyedIncludes })
+  );
+  forEach(coreSnippets, (snippet, i) => {
+    if(i) {
+      coreSnippets[0].addSnippet(snippet);
+    }
+  });
+  return coreSnippets[0];
+};
 
 const doubleQuoteStr = (str, encloseWithDoubleQuote = true) => {
   const stringified = JSON.stringify(str);
@@ -588,4 +622,5 @@ const execCmd = (cmd, cmdArgs = [], options = {}) => {
 };
 exports.execCmd = execCmd;
 
-exports.log = (...args) => console.log(...map(args, (arg) => JSON.parse(JSON.stringify(arg))));
+const log = (...args) => console.log(...map(args, (arg) => JSON.parse(JSON.stringify(arg))));
+exports.log = log;

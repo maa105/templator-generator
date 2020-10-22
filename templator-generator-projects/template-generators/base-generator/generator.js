@@ -8,8 +8,8 @@ const { cmdOptions, getAndRemoveOption, getCodeFromLines, ifNull, Snippet, Snipp
  * @typedef {Object} BaseGeneratorOptions
  * @property {string} [lineSeperator] - The end of line sequence. Defaults to CRLF (\r\n)
  * @property {boolean} [writeEmptyFiles] - If the file generator returned an empty string whether to write this file or not default to false i.e. will write the file
- * @property {number} [level] - (Root files and directories have level 0, files and directories in the directories at the root have level 1, and so on...), level is usually auto computed, but by this option you can override the file/directory level being generate for whatever reason (dont set it if you do not know what you are doing). `level` has precedence over `extraLevel` below
- * @property {number} [extraLevel] - this relates to same concept of level explained in prop `level` above. However this only offsets the auto generated level not completely replace it; so it is more useful. Its used for example if in the root directory you put a path to directory
+ * @property {number} [levelOverride] - (Root files and directories have level 0, files and directories in the directories at the root have level 1, and so on...), level is usually auto computed, but by this option you can override the file/directory level being generate for whatever reason (dont set it if you do not know what you are doing). `levelOverride` has precedence over `baseLevel` below
+ * @property {number} [baseLevel] - this relates to same concept of level explained in prop `levelOverride` above. However this only offsets the auto generated level not completely replace it; so it is more useful. Its used for example if in the root directory-generator you put an additional directory path
  */
 /**
  * @typedef {Object} DirectoryGeneratorOptionsExtention
@@ -136,7 +136,7 @@ const getGeneratorFilesEntries = async ({
       return null;
     }
   }
-  const filesEntries = await require('./' + generatorPath).generateFilesEntries(generateOptions, { ...generatorOptions, addFilePath: true, addDirectoryPath: true, generateSubDirectories: true, generateRootFiles: true });
+  const filesEntries = await require('./' + generatorPath).generateFilesEntries(generateOptions, { ...generatorOptions, levelOverride: null, addFilePath: true, addDirectoryPath: true, generateSubDirectories: true, generateRootFiles: true });
   if(filesEntries == null) {
     return null;
   }
